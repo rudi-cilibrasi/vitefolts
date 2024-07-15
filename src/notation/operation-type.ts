@@ -1,0 +1,15 @@
+export enum OperationType {
+    VOID = 0,
+    AND = 1,
+    OR = 2,
+    NOT = 3,
+    IMPLIES = 4,
+    IFF = 5,
+    LIMP = 6,
+    FORALL = 7,
+    EXISTS = 8,
+    FUNCTIONCALL = 9,
+    PREDICATECALL = 10,
+    VARIABLE_INSTANCE = 11,
+    EQUALS = 12,
+};
