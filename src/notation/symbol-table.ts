@@ -14,6 +14,7 @@ export class SymbolTable {
     names: DisplayNameForward = Map();
     definitionsForward: Map<string, SentenceTreeNode> = Map();
     definitionsReverse: Map<SentenceTreeNode, string> = Map();
+    annotations: Map<SentenceTreeNode, string> = Map();
     constructor() { }
     all_entries(): List<SymbolTableEntry> {
         let result = List<SymbolTableEntry>();
@@ -110,6 +111,17 @@ export class SymbolTable {
         st.symbols = this.symbols
         st.definitionsForward = this.definitionsForward.set(name, sentence)
         st.definitionsReverse = this.definitionsReverse.set(sentence, name)
+        return st;
+    }
+    get_annotation(sentence: SentenceTreeNode): string | undefined {
+        return this.annotations.get(sentence)
+    }
+    add_annotation(annotation: string, sentence: SentenceTreeNode): SymbolTable {
+        const st = new SymbolTable();
+        st.names = this.names
+        st.symbols = this.symbols
+        st.annotations = this.annotations.set(sentence, annotation)
+        console.log("Added annotation for sentence ", annotation)
         return st;
     }
 }

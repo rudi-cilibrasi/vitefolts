@@ -28,7 +28,11 @@ export class TruthBag {
         tb.sentences = this.sentences;
         return tb;
     }
-    add_sentence(sentence: SentenceTreeNode) {
+    add_sentence(sentence: SentenceTreeNode, annotation?: string) {
+        console.log("Annotation is ", annotation)
+        if (annotation === undefined) {
+            annotation = ''
+        }
         const tb = new TruthBag();
         const desc = printEscapedSentenceTree(sentence, this.symbol_table)
         console.log("Adding: ", printEscapedSentenceTree(sentence, this.symbol_table))
@@ -37,6 +41,9 @@ export class TruthBag {
         }
         tb.sentences = this.sentences.add(sentence)
         tb.symbol_table = this.symbol_table
+        if (annotation.length > 0) {
+            tb.symbol_table = tb.symbol_table.add_annotation(annotation, sentence)
+        }
         return tb
     }
     add_definition(name: string, sentence: SentenceTreeNode) {
