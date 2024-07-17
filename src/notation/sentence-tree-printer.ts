@@ -84,9 +84,9 @@ function printSentenceTreeNode(sentence_tree: SentenceTreeNode, indent: number, 
         case OperationType.EQUALS:
             return children.map((child) => printSentenceTreeNode(child, indent + 1, symbol_table, getDisplayName)).join('=');
         case OperationType.AND:
-            return children.map((child) => '[' + printSentenceTreeNode(child, indent + 1, symbol_table, getDisplayName) + ']').join(`${"&nbsp;".repeat(indent)}∧`);
+            return children.map((child) => '[' + printSentenceTreeNode(child, indent + 1, symbol_table, getDisplayName) + ']').join(`∧`);
         case OperationType.OR:
-            return children.map((child) => '(' + printSentenceTreeNode(child, indent + 1, symbol_table, getDisplayName) + ')').join(`${"&nbsp;".repeat(indent)}∨`);
+            return children.map((child) => '(' + printSentenceTreeNode(child, indent + 1, symbol_table, getDisplayName) + ')').join(`∨`);
         case OperationType.NOT:
             return '<span class="overline">' +
                 `${printSentenceTreeNode(children.get(0)!, indent, symbol_table, getDisplayName)}` + '</span>';
