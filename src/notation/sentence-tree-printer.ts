@@ -13,7 +13,7 @@ function printEscapedSentenceTreeNode(sentence_tree: SentenceTreeNode, indent: n
     }
     const operation: OperationType = sentence_tree.operation;
     const children: List<SentenceTreeNode> = sentence_tree.children;
-    const symbols: List<ScopedId> = sentence_tree.symbols;
+    const bound_vars: List<ScopedId> = sentence_tree.bound_vars;
     const showParen = (children.size > 0);
     const leftParen = showParen ? "(" : "";
     const rightParen = showParen ? ")" : "";
@@ -38,27 +38,27 @@ function printEscapedSentenceTreeNode(sentence_tree: SentenceTreeNode, indent: n
         case OperationType.LIMP:
             return `(\\limp ${printEscapedSentenceTreeNode(children.get(0)!, indent, symbol_table, getDisplayName)} ${printEscapedSentenceTreeNode(children.get(1)!, indent, symbol_table, getDisplayName)})`;
         case OperationType.FORALL:
-            return `(\\forall (${symbols.map((symbol: ScopedId) => getDisplayName(symbol, OperationType.FORALL, symbol_table)).join(" ")})${printEscapedSentenceTreeNode(children.get(0)!, indent + 1, symbol_table, getDisplayName)})`;
+            return `(\\forall (${bound_vars.map((symbol: ScopedId) => getDisplayName(symbol, OperationType.FORALL, symbol_table)).join(" ")})${printEscapedSentenceTreeNode(children.get(0)!, indent + 1, symbol_table, getDisplayName)})`;
         case OperationType.EXISTS:
-            return `(\\exists (${symbols.map((symbol: ScopedId) => getDisplayName(symbol, OperationType.EXISTS, symbol_table)).join(" ")})${printEscapedSentenceTreeNode(children.get(0)!, indent + 1, symbol_table, getDisplayName)})`;
+            return `(\\exists (${bound_vars.map((symbol: ScopedId) => getDisplayName(symbol, OperationType.EXISTS, symbol_table)).join(" ")})${printEscapedSentenceTreeNode(children.get(0)!, indent + 1, symbol_table, getDisplayName)})`;
         case OperationType.FUNCTIONCALL:
-            const sym_id = symbols.get(0)!
-            const sym_entry = symbol_table.find_by_id(symbols.get(0)!)!
+            const sym_id = bound_vars.get(0)!
+            const sym_entry = symbol_table.find_by_id(bound_vars.get(0)!)!
             if (sym_entry.is_infix) {
                 return children.map((child) => printEscapedSentenceTreeNode(child, indent, symbol_table, getDisplayName)).join(sym_entry.name)
             }
-            return `${leftParen}${getDisplayName(symbols.get(0)!, OperationType.FUNCTIONCALL, symbol_table)}${children.map((child) => printEscapedSentenceTreeNode(child, indent, symbol_table, getDisplayName)).join(" ")}${rightParen}`;
+            return `${leftParen}${getDisplayName(bound_vars.get(0)!, OperationType.FUNCTIONCALL, symbol_table)}${children.map((child) => printEscapedSentenceTreeNode(child, indent, symbol_table, getDisplayName)).join(" ")}${rightParen}`;
         case OperationType.PREDICATECALL:
-            const symbol_entry = symbol_table.find_by_id(symbols.get(0)!)!
+            const symbol_entry = symbol_table.find_by_id(bound_vars.get(0)!)!
             if (symbol_entry.is_infix) {
                 const chimap = children.map((child) => printEscapedSentenceTreeNode(child, indent, symbol_table, getDisplayName))
                 const joinsym = symbol_entry.name
                 const result = chimap.join(joinsym)
                 return result;
             }
-            return `(${getDisplayName(symbols.get(0)!, OperationType.PREDICATECALL, symbol_table)} ${children.map((child) => printEscapedSentenceTreeNode(child, indent, symbol_table, getDisplayName)).join(" ")})`;
+            return `(${getDisplayName(bound_vars.get(0)!, OperationType.PREDICATECALL, symbol_table)} ${children.map((child) => printEscapedSentenceTreeNode(child, indent, symbol_table, getDisplayName)).join(" ")})`;
         case OperationType.VARIABLE_INSTANCE:
-            return `${getDisplayName(symbols.get(0)!, OperationType.VARIABLE_INSTANCE, symbol_table)}`;
+            return `${getDisplayName(bound_vars.get(0)!, OperationType.VARIABLE_INSTANCE, symbol_table)}`;
         default:
             return "?";
     }
@@ -71,7 +71,7 @@ function printSentenceTreeNode(sentence_tree: SentenceTreeNode, indent: number, 
     }
     const operation: OperationType = sentence_tree.operation;
     const children: List<SentenceTreeNode> = sentence_tree.children;
-    const symbols: List<ScopedId> = sentence_tree.symbols;
+    const bound_vars: List<ScopedId> = sentence_tree.bound_vars;
     const showParen = (children.size > 0);
     const leftParen = showParen ? "(" : "";
     const rightParen = showParen ? ")" : "";
@@ -86,7 +86,7 @@ function printSentenceTreeNode(sentence_tree: SentenceTreeNode, indent: number, 
         case OperationType.AND:
             return children.map((child) => printSentenceTreeNode(child, indent + 1, symbol_table, getDisplayName)).join(`${"&nbsp;".repeat(indent)}∧`);
         case OperationType.OR:
-            return children.map((child) => printSentenceTreeNode(child, indent + 1, symbol_table, getDisplayName)).join(`${"&nbsp;".repeat(indent)}∨`);
+            return children.map((child) => '(' + printSentenceTreeNode(child, indent + 1, symbol_table, getDisplayName) + ')').join(`${"&nbsp;".repeat(indent)}∨`);
         case OperationType.NOT:
             return `¬${printSentenceTreeNode(children.get(0)!, indent, symbol_table, getDisplayName)}`;
         case OperationType.IMPLIES:
@@ -96,23 +96,23 @@ function printSentenceTreeNode(sentence_tree: SentenceTreeNode, indent: number, 
         case OperationType.LIMP:
             return `${printSentenceTreeNode(children.get(0)!, indent, symbol_table, getDisplayName)} ← ${printSentenceTreeNode(children.get(1)!, indent, symbol_table, getDisplayName)}`;
         case OperationType.FORALL:
-            return `∀${symbols.map((symbol: ScopedId) => getDisplayName(symbol, OperationType.FORALL, symbol_table)).join(",")}.${printSentenceTreeNode(children.get(0)!, indent + 1, symbol_table, getDisplayName)}`;
+            return `∀${bound_vars.map((symbol: ScopedId) => getDisplayName(symbol, OperationType.FORALL, symbol_table)).join(",")}.${printSentenceTreeNode(children.get(0)!, indent + 1, symbol_table, getDisplayName)}`;
         case OperationType.EXISTS:
-            return `∃${symbols.map((symbol: ScopedId) => getDisplayName(symbol, OperationType.EXISTS, symbol_table)).join(",")}.${printSentenceTreeNode(children.get(0)!, indent + 1, symbol_table, getDisplayName)}`;
+            return `∃${bound_vars.map((symbol: ScopedId) => getDisplayName(symbol, OperationType.EXISTS, symbol_table)).join(",")}.${printSentenceTreeNode(children.get(0)!, indent + 1, symbol_table, getDisplayName)}`;
         case OperationType.FUNCTIONCALL:
-            const sym_entry = symbol_table.find_by_id(symbols.get(0)!)!
+            const sym_entry = symbol_table.find_by_id(bound_vars.get(0)!)!
             if (sym_entry.is_infix) {
                 return children.map((child) => printEscapedSentenceTreeNode(child, indent, symbol_table, getDisplayName)).join(sym_entry.name)
             }
-            return `${getDisplayName(symbols.get(0)!, OperationType.FUNCTIONCALL, symbol_table)}${leftParen}${children.map((child) => printSentenceTreeNode(child, indent, symbol_table, getDisplayName)).join(",")}${rightParen}`;
+            return `${getDisplayName(bound_vars.get(0)!, OperationType.FUNCTIONCALL, symbol_table)}${leftParen}${children.map((child) => printSentenceTreeNode(child, indent, symbol_table, getDisplayName)).join(",")}${rightParen}`;
         case OperationType.PREDICATECALL:
-            const symbol_entry = symbol_table.find_by_id(symbols.get(0)!)!
+            const symbol_entry = symbol_table.find_by_id(bound_vars.get(0)!)!
             if (symbol_entry.is_infix) {
                 return children.map((child) => printEscapedSentenceTreeNode(child, indent, symbol_table, getDisplayName)).join(symbol_entry.name)
             }
-            return `${getDisplayName(symbols.get(0)!, OperationType.PREDICATECALL, symbol_table)}${leftParen}${children.map((child) => printSentenceTreeNode(child, indent, symbol_table, getDisplayName)).join(",")}${rightParen}`;
+            return `${getDisplayName(bound_vars.get(0)!, OperationType.PREDICATECALL, symbol_table)}${leftParen}${children.map((child) => printSentenceTreeNode(child, indent, symbol_table, getDisplayName)).join(",")}${rightParen}`;
         case OperationType.VARIABLE_INSTANCE:
-            return `${getDisplayName(symbols.get(0)!, OperationType.VARIABLE_INSTANCE, symbol_table)}`;
+            return `${getDisplayName(bound_vars.get(0)!, OperationType.VARIABLE_INSTANCE, symbol_table)}`;
         default:
             return "?";
     }
@@ -131,7 +131,7 @@ function simpleGetName(symbol: ScopedId, op: OperationType, symbol_table: Symbol
         case OperationType.EXISTS:
         case OperationType.FUNCTIONCALL:
         case OperationType.VARIABLE_INSTANCE:
-            if (scope_id === 1n) {
+            if (scope_id === 1) {
                 return String.fromCharCode('x'.charCodeAt(0) + Number(getName(symbol)))
             }
             return 'x_' + Number(getName(symbol))

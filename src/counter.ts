@@ -6,6 +6,7 @@ import { S3, SentenceTreeNode } from './notation/sentence-tree-node.ts'
 import { List } from 'immutable';
 import { TruthBag } from "./notation/truth-bag.ts";
 import { printTruthBagHtml } from "./notation/truth-bag-printer.ts";
+import { clausal_form_iffs_out, clausal_form_implications_out, clausal_form_limplications_out, clausal_form_remove_double_negations } from "./notation/clause.ts";
 
 const nat_id = n2SI(0, 0)
 const zero_id = n2SI(0, 1)
@@ -89,13 +90,30 @@ const x_plus_zero_eq_x = S3(OperationType.EQUALS, List<SentenceTreeNode>().push(
 const forall_x__x_plus_zero_eq_x = S3(OperationType.FORALL, List([x_plus_zero_eq_x]), List([x_id]))
 truth_bag = truth_bag.add_sentence(forall_x__x_plus_zero_eq_x)
 
+function doTruthBagTests() {
+  console.log("truth_bag contains forall: \t", truth_bag.contains_node_type(OperationType.FORALL))
+  console.log("truth_bag contains exists: \t", truth_bag.contains_node_type(OperationType.EXISTS))
+  console.log("truth_bag contains imp: \t", truth_bag.contains_node_type(OperationType.IMPLIES))
+  console.log("truth_bag contains limp: \t", truth_bag.contains_node_type(OperationType.LIMP))
+  console.log("truth_bag contains iff: \t", truth_bag.contains_node_type(OperationType.IFF))
+  console.log("truth_bag contains not: \t", truth_bag.contains_node_type(OperationType.NOT))
+  console.log("truth_bag contains and: \t", truth_bag.contains_node_type(OperationType.AND))
+  console.log("truth_bag contains or: \t", truth_bag.contains_node_type(OperationType.OR))
+}
+
+doTruthBagTests()
 export function setupCounter(element: HTMLButtonElement, div: HTMLDivElement) {
   let counter = BigInt(1)
   const setCounter = (count: bigint) => {
     counter = count
     truth_bag.ensure_consistency();
     let stringCounter = count.toString()
-    if (count > 5) {
+    if (count > 4) {
+      truth_bag = truth_bag.apply_node_transform(clausal_form_implications_out)
+      truth_bag = truth_bag.apply_node_transform(clausal_form_limplications_out)
+      truth_bag = truth_bag.apply_node_transform(clausal_form_iffs_out)
+      truth_bag = truth_bag.apply_node_transform(clausal_form_remove_double_negations)
+      doTruthBagTests()
     }
     element.innerHTML = `count is ${stringCounter}`
     div.innerHTML = `count is ${stringCounter}`

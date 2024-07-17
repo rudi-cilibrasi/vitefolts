@@ -1,5 +1,9 @@
 
-export type ScopeId = bigint;
+export enum ScopeId {
+    GLOBAL = 0,
+    LOCAL = 1,
+}
+
 export type NameId = bigint;
 export type ScopedId = bigint;
 
@@ -13,7 +17,7 @@ export function n2N(num: number): NameId {
 
 // num to ScopeId
 export function n2S(num: number): ScopeId {
-    return BigInt(num);
+    return num as ScopeId;
 }
 
 export function n2SI(scope: number, id: number): ScopedId {
@@ -21,11 +25,12 @@ export function n2SI(scope: number, id: number): ScopedId {
 }
 
 export function makeScopedId(scope: ScopeId, name: NameId): ScopedId {
-    return BigInt((scope << BigInt(MAX_SCOPE_BITS)) + name);
+    return BigInt((BigInt(scope) << BigInt(MAX_SCOPE_BITS)) + name);
 }
 
 export function getScope(id: ScopedId): ScopeId {
-    return BigInt(id >> BigInt(MAX_SCOPE_BITS));
+    const scopeBigInt = BigInt(id >> BigInt(MAX_SCOPE_BITS));
+    return Number(scopeBigInt) as ScopeId;
 }
 
 export function getName(id: ScopedId): NameId {

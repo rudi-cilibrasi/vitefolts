@@ -12,4 +12,6 @@ export enum OperationType {
     PREDICATECALL = 10,
     VARIABLE_INSTANCE = 11,
     EQUALS = 12,
+    SEQUENT_OR_CLAUSE = 13,
+    SEQUENT_AND_CLAUSE_LIST = 14,
 };
