@@ -6,7 +6,7 @@ import { S3, SentenceTreeNode } from './notation/sentence-tree-node.ts'
 import { List } from 'immutable';
 import { TruthBag } from "./notation/truth-bag.ts";
 import { printTruthBagHtml } from "./notation/truth-bag-printer.ts";
-import { clausal_form_iffs_out, clausal_form_implications_out, clausal_form_limplications_out, clausal_form_remove_double_negations } from "./notation/clause.ts";
+import { clausal_form_iffs_out, clausal_form_implications_out, clausal_form_limplications_out, clausal_form_negations_in, clausal_form_remove_double_negations } from "./notation/clause.ts";
 
 const nat_id = n2SI(0, 0)
 const zero_id = n2SI(0, 1)
@@ -113,6 +113,7 @@ export function setupCounter(element: HTMLButtonElement, div: HTMLDivElement) {
       truth_bag = truth_bag.apply_node_transform(clausal_form_limplications_out)
       truth_bag = truth_bag.apply_node_transform(clausal_form_iffs_out)
       truth_bag = truth_bag.apply_node_transform(clausal_form_remove_double_negations)
+      truth_bag = truth_bag.apply_node_transform(clausal_form_negations_in)
       doTruthBagTests()
     }
     element.innerHTML = `count is ${stringCounter}`
