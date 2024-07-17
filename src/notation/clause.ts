@@ -3,6 +3,36 @@ import { OperationType } from "./operation-type";
 import { S3F, SentenceTreeNode } from "./sentence-tree-node";
 import { has_node_type_in_set, inspect_sentence_node_types } from "./stn-inspector-types";
 
+export function clausal_form_negations_in(sentence: SentenceTreeNode): SentenceTreeNode {
+    const usedNodeTypes = inspect_sentence_node_types(sentence);
+    const has_it = has_node_type_in_set(usedNodeTypes, OperationType.NOT);
+    if (!has_it) {
+        return sentence;
+    }
+    if (sentence.operation !== OperationType.NOT) {
+        return clausal_form_negations_in(sentence);
+    }
+    const child = sentence.children.get(0)!;
+    const childOp = child!.operation;
+    if (childOp !== OperationType.FORALL && childOp !== OperationType.EXISTS && childOp !== OperationType.AND && childOp !== OperationType.OR) {
+        throw new Error("Unexpected operation type in clausal_form_negations_in");
+    }
+    if (childOp === OperationType.FORALL || childOp === OperationType.EXISTS) {
+        const quantifiedChild = child.children.get(0)!;
+        const otherOp = childOp == OperationType.FORALL ? OperationType.EXISTS : OperationType.FORALL;
+        const negatedQChild = S3F({ operation: OperationType.NOT, children: List<SentenceTreeNode>().push(quantifiedChild), bound_vars: List() });
+        const fixedNegatedQChild = clausal_form_negations_in(negatedQChild);
+        const fixedChild = S3F({ operation: otherOp, children: List<SentenceTreeNode>().push(fixedNegatedQChild), bound_vars: child.bound_vars });
+        return fixedChild;
+    }
+    const otherOp = childOp == OperationType.AND ? OperationType.OR : OperationType.AND;
+    const joinedChildren = child.children;
+    const negatedChildren = joinedChildren.map((c) => S3F({ operation: OperationType.NOT, children: List<SentenceTreeNode>().push(c), bound_vars: List() }));
+    const negatedFixedChildren = negatedChildren.map((c) => clausal_form_negations_in(c));
+    const fixedJoin = S3F({ operation: otherOp, children: negatedFixedChildren, bound_vars: child.bound_vars });
+    return fixedJoin;
+}
+
 export function clausal_form_remove_double_negations(sentence: SentenceTreeNode): SentenceTreeNode {
     const usedNodeTypes = inspect_sentence_node_types(sentence);
     const has_it = has_node_type_in_set(usedNodeTypes, OperationType.NOT);
