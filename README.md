@@ -29,4 +29,58 @@ The folts system distinguishes itself from other provers by the data structure d
 This means that each operation simply appends more information into a "TruthBag" according to the formal rules of logic.  Even though the structures all have different handles to each historical variation as they were constructed, the memory usage is reasonable because most of the data is shared between most of the versions and TypeScript has an efficient garbage collector. By using immutable.js for all of the underlying "state" we are able to gain an automatic value semantics for all logical expressions that enjoys a comparison operation that supports at least equality comparison. That means that we automatically deduplicate logical sentences in the TruthBag without ever defining an explicit equality relation.  It also means we never need to use locks and support parallel search. Each variation of the TruthBag before and after any operation remains valid. This allows us to take advantage of multi-core CPU's and computing clusters or distributed computing using web browser javscript engines more easily. It also prevents many classes of errors that are only possible when using more common mutable data structures popular in all OOP languages.
 
 
+## Core logic
 
+FOLTS is based on First Order Logic with Paramodulation. That means it supports all the standard propositional logical operations.
+It also supports universal and existential quantifiers as well as paramodulation or equality. Here are Peano's Axioms:
+https://en.wikipedia.org/wiki/Peano_axioms
+
+```
+
+Name	 Type	  Arity
+NAT	    Predicate	1
+ 0	    Function	0
+succ	Function	1
+ +      Function	2
+
+Sentences	
+
+[NAT(x)]∧[NAT(y)]∧[NAT(z)] → [x=y]∧[y=z] → x=z	[transitivity]
+
+∀x.NAT(x) → x=x	[reflection]
+
+NAT(0)	
+
+∀x.x+0=x	
+
+NAT(x) → NAT(succ(x))	[closure]
+
+[NAT(x)]∧[x=y] → NAT(y)	[closure]
+
+succ(x)=succ(y) → x=y	
+
+∀x.succ(x)=0	
+
+[NAT(x)]∧[NAT(y)] → x=y ↔ y=x	[symmetry]
+
+```
+
+Here is an intro to clausal form and the resolution procedure:
+http://intrologic.stanford.edu/extras/resolution.html
+
+
+## Building
+
+Make sure you have javascript node installed. I like version 20 or so.
+Clone this git repo
+
+```
+git clone git@github.com:rudi-cilibrasi/vitefolts.git
+cd vitefolts
+npm i
+npm run dev
+```
+
+Then go to the URL shown in your web browser.
+
+Click on the almost invisible top count button to trigger the clausal form reductions.
