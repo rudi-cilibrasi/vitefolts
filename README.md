@@ -55,6 +55,8 @@ Peano Axioms Example
 
 For an introduction to clausal form and the resolution procedure, visit [Stanford's Resolution Procedure](http://intrologic.stanford.edu/extras/resolution.html).
 
+For a longer guide have a look at the [Open Logic Project](https://builds.openlogicproject.org/content/first-order-logic/first-order-logic.pdf) book
+
 ### Building vitefolts
 
 To build and run vitefolts, follow these steps:
@@ -74,3 +76,4 @@ To build and run vitefolts, follow these steps:
 5. Click the almost invisible top count button to trigger clausal form reductions.
 
 By following these steps, you can start exploring the capabilities of vitefolts and its unique approach to First Order Logic.
+
