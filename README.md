@@ -55,7 +55,7 @@ Peano Axioms Example
 
 For an introduction to clausal form and the resolution procedure, visit [Stanford's Resolution Procedure](http://intrologic.stanford.edu/extras/resolution.html).
 
-For a longer guide have a look at the [Open Logic Project](https://builds.openlogicproject.org/content/first-order-logic/first-order-logic.pdf) book
+For a longer guide have a look at the [Open Logic Project](https://builds.openlogicproject.org/open-logic-complete.pdf) book
 
 ### Building vitefolts
 
