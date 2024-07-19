@@ -1,86 +1,76 @@
 # vitefolts
-Vite Folts poc
 
-## Project Overview
+## vitefolts: A TypeScript First Order Logic Engine
 
-vitefolts is a project to build a TypeScript First Order Logic engine.
+**vitefolts** is a project aimed at building a TypeScript-based First Order Logic (FOL) engine. The name "vitefolts" is derived from its integration with a Vite frontend. More information about Vite can be found at [vitejs.dev](https://vitejs.dev/).
 
-It is called vitefolts because this variation is integrated with a Vite frontend.  https://vitejs.dev/
+### Properties of vitefolts
 
-## Properties
+Logic involves the systematic construction ("deduction") of truth through formal methods, which can often be automated. First-order logic (FOL) is a particular subset of logic that offers several user-friendly properties:
 
-Logic is a systematic construction ("deduction") of truth through formal methods that may be automated.
+- **Expressiveness**: FOL can discuss countable infinities and rules of "always" or "never".
+- **Mathematical Foundation**: Much of classical mathematics, particularly those based on Zermelo-Fraenkel set theory, can be expressed in FOL.
+- **Proof Techniques**: FOL has straightforward and complete techniques for constructing and verifying proofs.
+- **Understandability**: Compared to the "black box" nature of neural networks and deep learning, FOL is relatively easy to understand.
+- **Automation**: It supports deduction verification and automated search using techniques like linear resolution with paramodulation.
 
-First-order logic is a particular subset of logic that enjoys some user-friendly properties:
-  * It's able to talk about countable infinities and rules of always or never
-  * It can express much of what people think of as classical mathematics that can be considered based on ZF set theory
-  * It has simple complete techniques to construct and verify proofs
-  * It is relatively easy to understand compared to the "black box" of neural networks and deep learning
-  * It supports deduction verification and automated search using techniques such as linear resolution with paramodulation.
+### Differentiating Features of vitefolts
 
-This prover is a FOL prover with paramodulation. In general, a logical procedure begins with a set of axioms which are
-sentences in a formal logical language. We can consider all of these to be assumed true for the purposes of the argument.
-Next we can take a "top clause" which is an inverted conclusion we wish to prove. The proof proceeds by contradiction to find a counterexample 
-when combining the top clause with the axiom set.
+vitefolts distinguishes itself through its data structure design, relying entirely on persistent functional data structures. Key features include:
 
-## Differentiating features
+- **Persistent Functional Data Structures**: Each operation appends information to a "TruthBag" following formal logic rules. Despite keeping all historical versions of every data structure, memory usage remains efficient due to shared data and TypeScript's garbage collection. Parallelism and consistency capability is amplified.
+- **Immutable.js**: Utilizes Immutable.js for underlying state management, ensuring value semantics for logical expressions. This facilitates automatic deduplication of logical sentences without explicitly defining equality relations.
+- **Parallelism and Lock-free Operation**: The system supports parallel search and avoids the need for locks. Each version of the TruthBag remains valid, enabling the use of multi-core CPUs, computing clusters, or distributed computing using web browser JavaScript engines.
+- **Error Prevention**: The use of immutable data structures prevents many errors common in mutable data structures used in OOP languages.
 
-The folts system distinguishes itself from other provers by the data structure design. It is built entirely on persistent functional data structures.
-This means that each operation simply appends more information into a "TruthBag" according to the formal rules of logic.  Even though the structures all have different handles to each historical variation as they were constructed, the memory usage is reasonable because most of the data is shared between most of the versions and TypeScript has an efficient garbage collector. By using immutable.js for all of the underlying "state" we are able to gain an automatic value semantics for all logical expressions that enjoys a comparison operation that supports at least equality comparison. That means that we automatically deduplicate logical sentences in the TruthBag without ever defining an explicit equality relation.  It also means we never need to use locks and support parallel search. Each variation of the TruthBag before and after any operation remains valid. This allows us to take advantage of multi-core CPU's and computing clusters or distributed computing using web browser javscript engines more easily. It also prevents many classes of errors that are only possible when using more common mutable data structures popular in all OOP languages.
+### Core Logic of vitefolts
 
+vitefolts is based on First Order Logic with Paramodulation, supporting standard propositional logical operations, universal and existential quantifiers, and equality. For reference, here are Peano's Axioms in vitefolts' terms:
 
-## Core logic
+Peano Axioms Example
 
-FOLTS is based on First Order Logic with Paramodulation. That means it supports all the standard propositional logical operations.
-It also supports universal and existential quantifiers as well as paramodulation or equality. Here are Peano's Axioms:
-https://en.wikipedia.org/wiki/Peano_axioms
+### Name | Type | Arity
+| Name  | Type      | Arity |
+|-------|-----------|-------|
+| NAT   | Predicate | 1     |
+| 0     | Function  | 0     |
+| succ  | Function  | 1     |
+| +     | Function  | 2     |
 
-```
-
-Name	 Type	  Arity
-NAT	    Predicate	1
- 0	    Function	0
-succ	Function	1
- +      Function	2
-
-Sentences	
-
-[NAT(x)]∧[NAT(y)]∧[NAT(z)] → [x=y]∧[y=z] → x=z	[transitivity]
-
-∀x.NAT(x) → x=x	[reflection]
-
-NAT(0)	
-
-∀x.x+0=x	
-
-NAT(x) → NAT(succ(x))	[closure]
-
-[NAT(x)]∧[x=y] → NAT(y)	[closure]
-
-succ(x)=succ(y) → x=y	
-
-∀x.succ(x)=0	
-
-[NAT(x)]∧[NAT(y)] → x=y ↔ y=x	[symmetry]
-
-```
-
-Here is an intro to clausal form and the resolution procedure:
-http://intrologic.stanford.edu/extras/resolution.html
+### Sentences
 
 
-## Building
 
-Make sure you have javascript node installed. I like version 20 or so.
-Clone this git repo
+| Sentence                                                                           | Description   |
+|------------------------------------------------------------------------------------|---------------|
+| [NAT(x)]∧[NAT(y)]∧[NAT(z)] → [x=y]∧[y=z] → x=z                                      | [transitivity]|
+| ∀x.NAT(x) → x=x                                                                    | [reflection]  |
+| NAT(0)                                                                             |               |
+| ∀x.x+0=x                                                                           |               |
+| NAT(x) → NAT(succ(x))                                                              | [closure]     |
+| [NAT(x)]∧[x=y] → NAT(y)                                                            | [closure]     |
+| succ(x)=succ(y) → x=y                                                              |               |
+| ∀x.succ(x)=0                                                                       |               |
+| [NAT(x)]∧[NAT(y)] → x=y ↔ y=x                                                      | [symmetry]    |
 
-```
-git clone git@github.com:rudi-cilibrasi/vitefolts.git
-cd vitefolts
-npm i
-npm run dev
-```
+For an introduction to clausal form and the resolution procedure, visit [Stanford's Resolution Procedure](http://intrologic.stanford.edu/extras/resolution.html).
 
-Then go to the URL shown in your web browser.
+### Building vitefolts
 
-Click on the almost invisible top count button to trigger the clausal form reductions.
+To build and run vitefolts, follow these steps:
+
+1. Ensure you have JavaScript Node installed (version 20 or later is recommended).
+2. Clone the repository:
+   ```bash
+   git clone git@github.com:rudi-cilibrasi/vitefolts.git
+   cd vitefolts
+   ```
+3. Install dependencies and start the development server:
+   ```bash
+   npm i
+   npm run dev
+   ```
+4. Open the URL shown in your web browser.
+5. Click the almost invisible top count button to trigger clausal form reductions.
+
+By following these steps, you can start exploring the capabilities of vitefolts and its unique approach to First Order Logic.
