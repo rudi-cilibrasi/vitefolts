@@ -57,6 +57,8 @@ For an introduction to clausal form and the resolution procedure, visit [Stanfor
 
 For a longer guide have a look at the [Open Logic Project](https://builds.openlogicproject.org/open-logic-complete.pdf) book
 
+If you prefer videos, here is a [good one by Adam Pease](https://www.youtube.com/watch?v=J3Pm43O48Uo)
+
 ### Building vitefolts
 
 To build and run vitefolts, follow these steps:
