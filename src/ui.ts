@@ -1,5 +1,6 @@
 import { Axiom, Conjecture } from './axioms';
-import { animateRow, renderStatic } from './anim/animator';
+import { animateMath, renderMath } from './anim/animator';
+import { mmlClause, mmlFusion, mmlSentence } from './anim/mathml-printer';
 import { printPlainSentence, variableDisplayName } from './anim/plain-printer';
 import { eq, not, varr } from './notation/builders';
 import { Clause, StepContext, clauseHasEquality, extractClauses } from './notation/cnf';
@@ -360,15 +361,6 @@ export function setupApp(
         return allExamples[exampleIndex];
     }
 
-    function litToString(positive: boolean, atom: SentenceTreeNode): string {
-        return positive ? printPlainSentence(atom, workingSt) : printPlainSentence(not(atom), workingSt);
-    }
-
-    function clauseToString(clause: Clause): string {
-        if (clause.literals.length === 0) return '□';
-        return '{' + clause.literals.map((l) => litToString(l.positive, l.atom)).join(', ') + '}';
-    }
-
     function buildRows(axioms: Axiom[]): void {
         sentencesEl.textContent = '';
         rowGlyphEls = [];
@@ -388,7 +380,7 @@ export function setupApp(
     }
 
     function renderAll(): void {
-        trees.forEach((tree, k) => renderStatic(rowGlyphEls[k], printPlainSentence(tree, workingSt)));
+        trees.forEach((tree, k) => renderMath(rowGlyphEls[k], mmlSentence(tree, workingSt)));
     }
 
     function refreshSymtab(): void {
@@ -468,8 +460,9 @@ export function setupApp(
     }
 
     function serializeAxioms(ex: ExampleUI): string {
+        // Labels are delimited by the first colon, so strip any from the note.
         return ex.axioms
-            .map((a) => (a.note ? `${a.note}: ` : '') + printPlainSentence(a.tree, ex.symbolTable))
+            .map((a) => (a.note ? `${a.note.replace(/:/g, ' —')}: ` : '') + printPlainSentence(a.tree, ex.symbolTable))
             .join('\n');
     }
 
@@ -512,12 +505,12 @@ export function setupApp(
         statusEl.textContent = step.detail;
         updateChrome();
         const newTrees = trees.map((t) => step.transform(t, ctx));
-        const newTexts = newTrees.map((t) => printPlainSentence(t, workingSt));
-        const oldTexts = trees.map((t) => printPlainSentence(t, workingSt));
-        const anyChange = newTexts.some((t, k) => t !== oldTexts[k]);
+        const newInners = newTrees.map((t) => mmlSentence(t, workingSt));
+        const oldInners = trees.map((t) => mmlSentence(t, workingSt));
+        const anyChange = newInners.some((t, k) => t !== oldInners[k]);
         if (anyChange) {
             const duration = BASE_DURATION_MS * durationMult();
-            await Promise.all(rowGlyphEls.map((el, k) => animateRow(el, newTexts[k], duration)));
+            await Promise.all(rowGlyphEls.map((el, k) => animateMath(el, newInners[k], duration)));
         } else {
             statusEl.textContent = `${step.detail} — no change needed.`;
             await sleep(400 * durationMult());
@@ -576,7 +569,7 @@ export function setupApp(
         row.appendChild(glyphs);
         row.appendChild(src);
         container.appendChild(row);
-        renderStatic(glyphs, text);
+        renderMath(glyphs, text);
         return row;
     }
 
@@ -604,26 +597,25 @@ export function setupApp(
         for (const step of proof.steps) {
             const num = nextNum++;
             derivedNums.push(num);
-            const resolventText = clauseToString(step.resolvent);
-            const centerText = clauseToString(centerClause);
-            let startText: string;
+            const resolventInner = mmlClause(step.resolvent, workingSt);
+            const centerInner = mmlClause(centerClause, workingSt);
+            let startInner: string;
             let info: string;
             if (step.kind === 'factor') {
-                startText = centerText;
+                startInner = centerInner;
                 info = `factor (${centerNum}) with ${substToString(step.substPairs)}`;
             } else {
-                const sideText = clauseToString(step.sideRenamed!);
-                startText = `${centerText} ⊗ ${sideText}`;
+                startInner = mmlFusion(centerInner, mmlClause(step.sideRenamed!, workingSt));
                 const verb = step.kind === 'paramodulate' ? 'paramodulate' : 'resolve';
                 info = `${verb} (${centerNum}) with (${refNum(step.sideRef!)}), ${substToString(step.substPairs)}`;
             }
-            const row = addClauseRow(proofEl, num, step.kind, startText);
+            const row = addClauseRow(proofEl, num, step.kind, startInner);
             const glyphs = row.querySelector<HTMLElement>('.glyphs')!;
             const infoEl = document.createElement('div');
             infoEl.className = 'step-info';
             row.appendChild(infoEl);
             await sleep(150 * durationMult());
-            await animateRow(glyphs, resolventText, duration);
+            await animateMath(glyphs, resolventInner, duration);
             infoEl.textContent = info;
             infoEl.classList.add('visible');
             centerClause = step.resolvent;
@@ -694,7 +686,7 @@ export function setupApp(
 
             verdictEl.textContent = `Refuting: axioms ∧ ¬(${printPlainSentence(conjTree, workingSt)}) — searching for □ …`;
             for (let i = 0; i < numbered.length; i++) {
-                addClauseRow(clausesEl, i + 1, numbered[i].label, clauseToString(numbered[i].clause));
+                addClauseRow(clausesEl, i + 1, numbered[i].label, mmlClause(numbered[i].clause, workingSt));
                 await sleep(90 * durationMult());
             }
 
