@@ -40,6 +40,80 @@ GRAND(carol, alice)  # not entailed — watch the search fail`;
 
 const CUSTOM_HINT = 'Your own theory. Edit the axioms and conjectures below, hit Apply, then step the pipeline or prove a conjecture. Use “✎ edit in editor” on any example to start from it.';
 
+// Live ASCII → symbol conversion so no special keyboard is needed.
+// Trailing-match pairs applied as the user types; ←> handles the case where
+// <- already converted before the > of a <-> arrived.
+const TYPE_ALIASES: Array<[string, string]> = [
+    ['<->', '↔'], ['←>', '↔'], ['->', '→'], ['<-', '←'],
+    ['&', '∧'], ['|', '∨'], ['~', '¬'], ['*', '·'],
+];
+const WORD_ALIAS_TRAILING = /(^|[^A-Za-z0-9_])(forall|exists)([^A-Za-z0-9_])$/;
+
+function convertTrailing(el: HTMLTextAreaElement | HTMLInputElement): void {
+    const pos = el.selectionStart ?? el.value.length;
+    const value = el.value;
+    const before = value.slice(0, pos);
+    // Leave # comments alone.
+    const lineStart = before.lastIndexOf('\n') + 1;
+    if (before.slice(lineStart).includes('#')) return;
+    const wordMatch = WORD_ALIAS_TRAILING.exec(before);
+    if (wordMatch !== null) {
+        const sym = wordMatch[2] === 'forall' ? '∀' : '∃';
+        const wordStart = before.length - wordMatch[2].length - wordMatch[3].length;
+        const boundary = wordMatch[3] === ' ' ? '' : wordMatch[3];
+        el.value = before.slice(0, wordStart) + sym + boundary + value.slice(pos);
+        const newPos = wordStart + sym.length + boundary.length;
+        el.setSelectionRange(newPos, newPos);
+        return;
+    }
+    for (const [alias, sym] of TYPE_ALIASES) {
+        if (!before.endsWith(alias)) continue;
+        el.value = before.slice(0, before.length - alias.length) + sym + value.slice(pos);
+        const newPos = pos - alias.length + sym.length;
+        el.setSelectionRange(newPos, newPos);
+        return;
+    }
+}
+
+// Full-text conversion for pasted content.
+function convertAll(text: string): string {
+    return text.split('\n').map((line) => {
+        const hash = line.indexOf('#');
+        let head = hash === -1 ? line : line.slice(0, hash);
+        const tail = hash === -1 ? '' : line.slice(hash);
+        head = head.replace(/(^|[^A-Za-z0-9_])forall(?![A-Za-z0-9_])/g, '$1∀');
+        head = head.replace(/(^|[^A-Za-z0-9_])exists(?![A-Za-z0-9_])/g, '$1∃');
+        head = head.replace(/([∀∃]) +/g, '$1');
+        for (const [alias, sym] of TYPE_ALIASES) {
+            head = head.split(alias).join(sym);
+        }
+        return head + tail;
+    }).join('\n');
+}
+
+function attachAsciiConversion(el: HTMLTextAreaElement | HTMLInputElement): void {
+    el.addEventListener('input', () => convertTrailing(el));
+    el.addEventListener('paste', () => {
+        setTimeout(() => {
+            const converted = convertAll(el.value);
+            if (converted !== el.value) el.value = converted;
+        });
+    });
+}
+
+// Symbol → what to type on a US keyboard. Drives the legend and the toolbar tooltips.
+const KEY_HINTS: Array<[string, string]> = [
+    ['∀', 'forall'], ['∃', 'exists'], ['¬', '~'], ['∧', '&'], ['∨', '|'],
+    ['→', '->'], ['↔', '<->'], ['·', '*'],
+];
+
+function keyLegendHtml(intro: string): string {
+    const items = KEY_HINTS
+        .map(([sym, keys]) => `<span class="key-pair"><kbd>${keys.replace(/</g, '&lt;')}</kbd><span class="key-sym">${sym}</span></span>`)
+        .join('');
+    return `<div class="keylegend"><span class="keylegend-intro">${intro}</span>${items}</div>`;
+}
+
 interface SplitLine {
     formula: string;
     label: string;
@@ -123,8 +197,11 @@ export function setupApp(
             </div>
             <div class="editor-actions">
                 <button id="btn-apply" type="button">Apply theory ▸</button>
-                <span class="editor-help">ASCII aliases: forall, exists, ~, &amp;, |, -&gt;, &lt;-&gt;, * · Variables are u–z or quantifier-bound; other names are constants/functions/predicates, inferred from use.</span>
+                <span class="editor-help">Variables are single letters u–z (or anything quantifier-bound);
+                other names become constants, functions, or predicates from how you use them.
+                Click a symbol button above to insert it, or just type ASCII:</span>
             </div>
+            ${keyLegendHtml('No special keyboard needed — these convert as you type:')}
             <pre class="editor-error" id="editor-error"></pre>
         </section>
         <section class="pipeline" id="pipeline"></section>
@@ -151,9 +228,11 @@ export function setupApp(
             <div class="prover-controls">
                 <select id="conjecture"></select>
                 <input id="conj-typed" type="text" spellcheck="false"
-                    placeholder="… or type your own, e.g. ∃x.MORTAL(x)" />
+                    placeholder="… or type your own, e.g. exists x. MORTAL(x)"
+                    title="ASCII converts as you type: forall→∀ exists→∃ ~→¬ &→∧ |→∨ ->→→ <->→↔ *→·" />
                 <button id="btn-prove" type="button">Prove ▸</button>
             </div>
+            ${keyLegendHtml('Typing here converts ASCII to symbols:')}
             <div class="clauses" id="clauses"></div>
             <div class="clauses proof" id="proof"></div>
             <p class="verdict" id="verdict"></p>
@@ -210,12 +289,15 @@ export function setupApp(
     editBtn.title = 'Copy the current example into the Custom editor';
     examplesEl.appendChild(editBtn);
 
+    const keyHintFor = new Map(KEY_HINTS);
     for (const bar of Array.from(root.querySelectorAll<HTMLElement>('.symbar'))) {
         const target = root.querySelector<HTMLTextAreaElement>(`#${bar.dataset.for}`)!;
         for (const sym of ['∀', '∃', '¬', '∧', '∨', '→', '↔', '=', '·']) {
             const b = document.createElement('button');
             b.type = 'button';
             b.textContent = sym;
+            const hint = keyHintFor.get(sym);
+            b.title = hint !== undefined ? `insert ${sym} — or just type ${hint}` : `insert ${sym}`;
             b.addEventListener('click', () => {
                 const at = target.selectionStart ?? target.value.length;
                 target.setRangeText(sym, at, target.selectionEnd ?? at, 'end');
@@ -224,6 +306,9 @@ export function setupApp(
             bar.appendChild(b);
         }
     }
+    attachAsciiConversion(axInput);
+    attachAsciiConversion(conjInput);
+    attachAsciiConversion(conjTypedInput);
 
     const chips: HTMLElement[] = steps.map((step) => {
         const chip = document.createElement('div');
