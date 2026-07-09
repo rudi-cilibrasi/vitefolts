@@ -4,7 +4,9 @@
 
 **vitefolts** is a project aimed at building a TypeScript-based First Order Logic (FOL) engine. The name "vitefolts" is derived from its integration with a Vite frontend. More information about Vite can be found at [vitejs.dev](https://vitejs.dev/).
 
-**Live demo: [rudi-cilibrasi.github.io/vitefolts](https://rudi-cilibrasi.github.io/vitefolts/)** — step an axiom set through the clausal-form pipeline (eliminate `→`, eliminate `↔`, cancel `¬¬`, push `¬` inward) and watch each rewrite animate: surviving symbols glide along quadratic Bézier splines with time-parameterized easing, and mirror-image conversions animate as reflections — a De Morgan step literally flips `∧` upside down into `∨` (scaleY 1 → −1), and `∃` flips into `∀`. Deleted symbols fade out; new symbols pop in.
+**Live demo: [rudi-cilibrasi.github.io/vitefolts](https://rudi-cilibrasi.github.io/vitefolts/)** — step an axiom set through the full clausal-form pipeline (eliminate `→`, eliminate `↔`, cancel `¬¬`, push `¬` inward, Skolemize `∃`, drop `∀`, distribute `∨` over `∧`) and watch each rewrite animate: surviving symbols glide along quadratic Bézier splines with time-parameterized easing, and mirror-image conversions animate as reflections — a De Morgan step literally flips `∧` upside down into `∨` (scaleY 1 → −1), and `∃` flips into `∀`. Deleted symbols fade out; new symbols pop in.
+
+Then **prove a conjecture**: pick a conjecture φ and the engine refutes axioms ∧ ¬φ by **linear resolution with paramodulation** — unification with occurs check, binary resolution, factoring, and equality rewriting, searched by iterative deepening so the shortest proof is found. Every derivation animates with the same glyph engine: the parent clauses fuse, the resolved complementary literals annihilate, and unified variables visibly morph into their substituted terms, ending at the empty clause `□`. Conjectures that don't follow (try `GOD(socrates)`) report an honest search failure.
 
 Four example theories are included, each chosen so a different pipeline step gets a dramatic moment:
 

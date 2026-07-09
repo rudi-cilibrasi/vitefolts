@@ -1,27 +1,14 @@
-import { List } from 'immutable';
-import { OperationType } from './notation/operation-type.ts';
-import { n2SI, ScopedId } from './notation/scope.ts';
-import { S3, SentenceTreeNode } from './notation/sentence-tree-node.ts';
+import { and, eq, exists, fn, forall, iff, implies, not, or, pred, varr } from './notation/builders.ts';
+import { n2SI } from './notation/scope.ts';
+import { SentenceTreeNode } from './notation/sentence-tree-node.ts';
 import { TruthBag } from './notation/truth-bag.ts';
-import { Axiom, AxiomSet, buildPeanoAxioms } from './axioms.ts';
+import { Axiom, AxiomSet, Conjecture, buildPeanoAxioms } from './axioms.ts';
 
 export interface ExampleDef {
     name: string;
     hint: string;
     build: () => AxiomSet;
 }
-
-// Small combinators so example theories read close to their mathematical form.
-const and = (...cs: SentenceTreeNode[]) => S3(OperationType.AND, List(cs), List([]));
-const not = (c: SentenceTreeNode) => S3(OperationType.NOT, List([c]), List([]));
-const implies = (a: SentenceTreeNode, b: SentenceTreeNode) => S3(OperationType.IMPLIES, List([a, b]), List([]));
-const iff = (a: SentenceTreeNode, b: SentenceTreeNode) => S3(OperationType.IFF, List([a, b]), List([]));
-const forall = (vars: ScopedId[], body: SentenceTreeNode) => S3(OperationType.FORALL, List([body]), List(vars));
-const exists = (vars: ScopedId[], body: SentenceTreeNode) => S3(OperationType.EXISTS, List([body]), List(vars));
-const eq = (a: SentenceTreeNode, b: SentenceTreeNode) => S3(OperationType.EQUALS, List([a, b]), List([]));
-const fn = (id: ScopedId, ...args: SentenceTreeNode[]) => S3(OperationType.FUNCTIONCALL, List(args), List([id]));
-const pred = (id: ScopedId, ...args: SentenceTreeNode[]) => S3(OperationType.PREDICATECALL, List(args), List([id]));
-const varr = (id: ScopedId) => S3(OperationType.VARIABLE_INSTANCE, List(), List([id]));
 
 function buildGroupTheory(): AxiomSet {
     const G_id = n2SI(0, 0);
@@ -50,10 +37,14 @@ function buildGroupTheory(): AxiomSet {
         { tree: forall([x_id], implies(G(x), exists([y_id], and(G(y), eq(mul(x, y), e))))), note: 'inverses' },
         { tree: not(forall([x_id], eq(x, e))), note: 'nontrivial' },
     ];
+    const conjectures: Conjecture[] = [
+        { tree: eq(mul(e, mul(e, e)), e), remark: 'needs paramodulation' },
+        { tree: exists([y_id], eq(mul(e, y), e)) },
+    ];
     for (const a of axioms) {
         truthBag = truthBag.add_sentence(a.tree, a.note);
     }
-    return { truthBag, axioms };
+    return { truthBag, axioms, conjectures };
 }
 
 function buildSocrates(): AxiomSet {
@@ -79,10 +70,15 @@ function buildSocrates(): AxiomSet {
         { tree: not(exists([x_id], and(pred(GOD_id, x), pred(MAN_id, x)))), note: 'no god is a man' },
         { tree: not(exists([x_id], not(pred(MORTAL_id, x)))), note: 'nothing escapes death' },
     ];
+    const conjectures: Conjecture[] = [
+        { tree: pred(MORTAL_id, socrates) },
+        { tree: not(pred(GOD_id, socrates)) },
+        { tree: pred(GOD_id, socrates), remark: 'not entailed — watch the search fail' },
+    ];
     for (const a of axioms) {
         truthBag = truthBag.add_sentence(a.tree, a.note);
     }
-    return { truthBag, axioms };
+    return { truthBag, axioms, conjectures };
 }
 
 function buildInterlock(): AxiomSet {
@@ -117,10 +113,14 @@ function buildInterlock(): AxiomSet {
         { tree: iff(FAULT, not(and(A_OK, B_OK))), note: 'sensor fault' },
         { tree: not(and(RUN, STOP)), note: 'mutual exclusion' },
     ];
+    const conjectures: Conjecture[] = [
+        { tree: implies(RUN, not(ALARM)) },
+        { tree: or(A_OK, FAULT) },
+    ];
     for (const a of axioms) {
         truthBag = truthBag.add_sentence(a.tree, a.note);
     }
-    return { truthBag, axioms };
+    return { truthBag, axioms, conjectures };
 }
 
 export const EXAMPLES: ExampleDef[] = [
