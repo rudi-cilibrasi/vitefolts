@@ -1,23 +1,43 @@
-import './style.css'
-import typescriptLogo from './typescript.svg'
-import viteLogo from '/vite.svg'
-import { setupCounter } from './counter.ts'
+import './style.css';
+import { buildPeanoAxioms } from './axioms.ts';
+import { setupApp, PipelineStep } from './ui.ts';
+import {
+    clausal_form_iffs_out,
+    clausal_form_implications_out,
+    clausal_form_negations_in,
+    clausal_form_remove_double_negations,
+} from './notation/clause.ts';
+import { print_symbol_table } from './notation/symbol-table-printer.ts';
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://www.typescriptlang.org/" target="_blank">
-      <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
-    </a>
-    <h1>First Order Logic</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <div class="card" id="divcounter">
-    </div>
-  </div>
-`
+const { truthBag, axioms } = buildPeanoAxioms();
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!, document.querySelector<HTMLDivElement>('#divcounter')!)
+const steps: PipelineStep[] = [
+    {
+        label: '→ out',
+        detail: 'Eliminate implications: A → B rewrites to (¬A)∨(B).',
+        transform: clausal_form_implications_out,
+    },
+    {
+        label: '↔ out',
+        detail: 'Eliminate biconditionals: A ↔ B rewrites to [(¬A)∨(B)]∧[(A)∨(¬B)].',
+        transform: clausal_form_iffs_out,
+    },
+    {
+        label: '¬¬ cancel',
+        detail: 'Remove double negations: ¬¬A rewrites to A.',
+        transform: clausal_form_remove_double_negations,
+    },
+    {
+        label: '¬ inward',
+        detail: 'Push negations inward (De Morgan): ¬(A∧B) reflects the ∧ into ∨, ¬∃ flips into ∀¬.',
+        transform: clausal_form_negations_in,
+    },
+];
+
+setupApp(
+    document.querySelector<HTMLDivElement>('#app')!,
+    axioms,
+    steps,
+    truthBag.symbol_table,
+    print_symbol_table(truthBag.symbol_table),
+);

@@ -1,6 +1,6 @@
 import { List, Map } from 'immutable'
 import { SymbolSignature, SymbolSignatureArityMask, SymbolSignatureFunctionMask, SymbolSignatureInfixMask, SymbolSignaturePredicateMask, SymbolSignaturePrefixMask, SymbolSignatureVariableMask } from './signature'
-import { makeScopedId, ScopedId, n2SI } from './scope'
+import { ScopedId } from './scope'
 import { SymbolTableEntry } from './symbol-table-entry'
 import { SymbolType } from './symbol-type'
 import { SentenceTreeNode } from './sentence-tree-node'
