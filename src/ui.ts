@@ -698,7 +698,7 @@ export function setupApp(
                 await sleep(90 * durationMult());
             }
 
-            const proof = prove(numbered.map((n) => n.clause), sosIndices, proverEnv);
+            const proof = prove(numbered.map((n) => n.clause), sosIndices, proverEnv, { maxDepth: 12 });
             if (proof === null) {
                 verdictEl.textContent = '✗ No refutation found within the search limits — the conjecture does not follow from these axioms (or needs a deeper proof).';
                 verdictEl.className = 'verdict fail';

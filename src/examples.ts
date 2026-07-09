@@ -123,6 +123,48 @@ function buildInterlock(): AxiomSet {
     return { truthBag, axioms, conjectures };
 }
 
+function buildRiverCrossing(): AxiomSet {
+    const REACH_id = n2SI(0, 0);
+    const L_id = n2SI(0, 1);
+    const R_id = n2SI(0, 2);
+
+    let truthBag = new TruthBag();
+    truthBag = truthBag.add_predicate(REACH_id, 'REACH', 4, false);
+    truthBag = truthBag.add_function(L_id, 'L', 0, false);
+    truthBag = truthBag.add_function(R_id, 'R', 0, false);
+
+    const L = fn(L_id);
+    const R = fn(R_id);
+    // REACH(farmer, wolf, goat, cabbage) — which bank each is on.
+    const at = (f: SentenceTreeNode, w: SentenceTreeNode, g: SentenceTreeNode, c: SentenceTreeNode) =>
+        pred(REACH_id, f, w, g, c);
+
+    // Only crossings between SAFE states are axioms: the goat is never left
+    // with the wolf or the cabbage without the farmer.
+    const axioms: Axiom[] = [
+        { tree: at(L, L, L, L), note: 'start' },
+        { tree: implies(at(L, L, L, L), at(R, L, R, L)), note: 'take goat →' },
+        { tree: implies(at(R, L, R, L), at(L, L, R, L)), note: '← row back' },
+        { tree: implies(at(L, L, R, L), at(R, R, R, L)), note: 'take wolf →' },
+        { tree: implies(at(R, R, R, L), at(L, R, L, L)), note: '← bring goat back' },
+        { tree: implies(at(L, R, L, L), at(R, R, L, R)), note: 'take cabbage →' },
+        { tree: implies(at(R, R, L, R), at(L, R, L, R)), note: '← row back' },
+        { tree: implies(at(L, R, L, R), at(R, R, R, R)), note: 'take goat →' },
+        { tree: implies(at(L, L, R, L), at(R, L, R, R)), note: 'or: take cabbage →' },
+        { tree: implies(at(R, L, R, R), at(L, L, L, R)), note: '← bring goat back' },
+        { tree: implies(at(L, L, L, R), at(R, R, L, R)), note: 'take wolf →' },
+    ];
+    const conjectures: Conjecture[] = [
+        { tree: at(R, R, R, R), remark: 'the 8-step proof is the ferry plan' },
+        { tree: at(L, R, L, R), remark: 'wolf and cabbage across, goat home' },
+        { tree: at(R, L, L, R), remark: 'wolf would eat the goat — unreachable' },
+    ];
+    for (const a of axioms) {
+        truthBag = truthBag.add_sentence(a.tree, a.note);
+    }
+    return { truthBag, axioms, conjectures };
+}
+
 export const EXAMPLES: ExampleDef[] = [
     {
         name: 'Peano arithmetic',
@@ -138,6 +180,11 @@ export const EXAMPLES: ExampleDef[] = [
         name: 'Socrates & the gods',
         hint: 'Aristotle with a twist: "no god is a man" double-flips (∃→∀, ∧→∨), and "nothing escapes death" cancels a hidden ¬¬ into ∀x.MORTAL(x).',
         build: buildSocrates,
+    },
+    {
+        name: 'Wolf, goat & cabbage',
+        hint: 'The classic river crossing as pure logic: REACH(farmer, wolf, goat, cabbage) says who is on which bank (L or R), and only safe crossings are axioms — the goat is never left with the wolf or the cabbage. Prove REACH(R,R,R,R) and the refutation, read top to bottom, is the farmer\'s ferry plan.',
+        build: buildRiverCrossing,
     },
     {
         name: 'Safety interlock',
