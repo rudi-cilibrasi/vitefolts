@@ -37,6 +37,34 @@ body {
     padding: 2rem 1.5rem 4rem;
 }
 
+header {
+    position: relative;
+}
+
+.gh-link {
+    position: absolute;
+    top: 0.2rem;
+    right: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--panel);
+    color: var(--ink);
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: border-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+}
+
+.gh-link:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-1px);
+}
+
 header h1 {
     margin: 0;
     font-size: 2.4rem;
