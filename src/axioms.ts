@@ -1,4 +1,5 @@
 import { List } from 'immutable';
+import { exists, fn, pred, varr } from "./notation/builders.ts";
 import { OperationType } from "./notation/operation-type.ts";
 import { n2SI, ScopedId } from "./notation/scope.ts";
 import { S3, SentenceTreeNode } from './notation/sentence-tree-node.ts';
@@ -9,9 +10,15 @@ export interface Axiom {
     note: string;
 }
 
+export interface Conjecture {
+    tree: SentenceTreeNode;
+    remark?: string;
+}
+
 export interface AxiomSet {
     truthBag: TruthBag;
     axioms: Axiom[];
+    conjectures: Conjecture[];
 }
 
 const nat_id = n2SI(0, 0);
@@ -113,5 +120,11 @@ export function buildPeanoAxioms(): AxiomSet {
     const forall_x__x_plus_zero_eq_x = S3(OperationType.FORALL, List([x_plus_zero_eq_x]), List([x_id]));
     addAxiom(forall_x__x_plus_zero_eq_x, "additive identity");
 
-    return { truthBag, axioms };
+    const conjectures: Conjecture[] = [
+        { tree: exists([x_id], pred(nat_id, fn(succ, varr(x_id)))) },
+        { tree: pred(nat_id, fn(PLUS, zero, zero)), remark: 'needs paramodulation' },
+        { tree: pred(nat_id, succ_zero), remark: '1 is defined as succ(0)' },
+    ];
+
+    return { truthBag, axioms, conjectures };
 }

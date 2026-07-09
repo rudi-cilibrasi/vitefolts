@@ -234,6 +234,161 @@ header h1 {
     transform-origin: 50% 55%;
 }
 
+.prover {
+    margin-top: 2.5rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+}
+
+.prover h2 {
+    margin: 0 0 0.4rem;
+    font-size: 1.3rem;
+}
+
+.prover h2 .sub {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--ink-dim);
+    margin-left: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.prover-blurb {
+    color: var(--ink-dim);
+    max-width: 74ch;
+    line-height: 1.5;
+    font-size: 0.92rem;
+    margin: 0 0 1rem;
+}
+
+.prover-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 1.2rem;
+}
+
+.prover-controls select {
+    font: inherit;
+    max-width: 100%;
+    background: var(--panel-2);
+    color: var(--ink);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.45rem 0.6rem;
+}
+
+.prover-controls button {
+    font: inherit;
+    font-weight: 600;
+    padding: 0.5rem 1.1rem;
+    border-radius: 10px;
+    border: 1px solid var(--accent);
+    background: var(--panel-2);
+    color: var(--accent);
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.prover-controls button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 0 12px rgba(98, 182, 255, 0.25);
+}
+
+.prover-controls button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.clauses {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.clauses.proof {
+    margin-top: 0.7rem;
+}
+
+.clause-row {
+    display: grid;
+    grid-template-columns: 3rem 1fr 9rem;
+    gap: 0.7rem;
+    align-items: baseline;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.45rem 0.9rem;
+}
+
+.proof .clause-row {
+    border-color: #3d4a63;
+    background: var(--panel-2);
+}
+
+.clause-num {
+    color: var(--accent);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.clause-src {
+    color: var(--ink-dim);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    text-align: right;
+}
+
+.glyphs-clause {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    min-height: 1.7em;
+}
+
+.step-info {
+    grid-column: 2 / 4;
+    color: var(--accent-2);
+    font-size: 0.82rem;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.step-info.visible {
+    opacity: 1;
+}
+
+.pop-in {
+    animation: pop-in 0.35s ease both;
+}
+
+@keyframes pop-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.verdict {
+    margin-top: 1rem;
+    font-weight: 600;
+    min-height: 1.4em;
+}
+
+.verdict.ok {
+    color: var(--good);
+}
+
+.verdict.fail {
+    color: #ff8484;
+}
+
 .symbols {
     margin-top: 2rem;
     color: var(--ink-dim);

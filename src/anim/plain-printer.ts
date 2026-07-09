@@ -104,3 +104,7 @@ function printNode(node: SentenceTreeNode, symbol_table: SymbolTable): string {
 export function printPlainSentence(node: SentenceTreeNode, symbol_table: SymbolTable): string {
     return printNode(node, symbol_table);
 }
+
+export function variableDisplayName(symbol: ScopedId, symbol_table: SymbolTable): string {
+    return displayName(symbol, OperationType.VARIABLE_INSTANCE, symbol_table);
+}
