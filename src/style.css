@@ -7,17 +7,18 @@
 }
 
 :root {
-    --bg: #0e1116;
-    --panel: #161b23;
-    --panel-2: #1c2330;
-    --ink: #e8ecf3;
-    --ink-dim: #93a0b4;
-    --accent: #62b6ff;
-    --accent-2: #ffc46b;
-    --good: #6fdb8f;
-    --border: #2a3345;
+    --bg: #faf9f6;
+    --panel: #ffffff;
+    --panel-2: #f2f0ec;
+    --ink: #191919;
+    --ink-dim: #6d6d6d;
+    --accent: #44576d;
+    --accent-2: #7a6652;
+    --good: #3e6b4f;
+    --bad: #8c3b3b;
+    --border: #d9d5cf;
     font-family: Inter, "Segoe UI", system-ui, Avenir, Helvetica, Arial, sans-serif;
-    color-scheme: dark;
+    color-scheme: light;
 }
 
 * {
@@ -27,7 +28,7 @@
 body {
     margin: 0;
     min-height: 100vh;
-    background: radial-gradient(1200px 600px at 70% -10%, #17233a 0%, var(--bg) 60%);
+    background: var(--bg);
     color: var(--ink);
 }
 
@@ -68,11 +69,9 @@ header {
 header h1 {
     margin: 0;
     font-size: 2.4rem;
-    letter-spacing: 0.02em;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    letter-spacing: 0.01em;
+    font-family: "STIX Two Math", Georgia, "Times New Roman", serif;
+    color: var(--ink);
 }
 
 .tagline {
@@ -230,7 +229,7 @@ header h1 {
 }
 
 .editor-actions button:hover:not(:disabled) {
-    box-shadow: 0 0 12px rgba(255, 196, 107, 0.25);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
 .editor-actions button:disabled {
@@ -295,7 +294,7 @@ header h1 {
 .editor-error {
     grid-column: 1 / -1;
     margin: 0;
-    color: #ff8484;
+    color: var(--bad);
     font-size: 0.85rem;
     white-space: pre-wrap;
     font-family: inherit;
@@ -348,7 +347,7 @@ header h1 {
 .chip.current {
     border-color: var(--accent);
     color: var(--accent);
-    box-shadow: 0 0 12px rgba(98, 182, 255, 0.25);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
 .chip.done {
@@ -363,7 +362,7 @@ header h1 {
 .chip-final.current {
     border-color: var(--accent-2);
     color: var(--accent-2);
-    box-shadow: 0 0 14px rgba(255, 196, 107, 0.3);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
 .controls {
@@ -432,6 +431,7 @@ header h1 {
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 0.8rem 1rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .row-label {
@@ -534,7 +534,7 @@ header h1 {
 
 .prover-controls button:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 0 12px rgba(98, 182, 255, 0.25);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
 .prover-controls button:disabled {
@@ -561,10 +561,11 @@ header h1 {
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 0.45rem 0.9rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .proof .clause-row {
-    border-color: #3d4a63;
+    border-color: #c9c3ba;
     background: var(--panel-2);
 }
 
@@ -626,7 +627,7 @@ header h1 {
 }
 
 .verdict.fail {
-    color: #ff8484;
+    color: var(--bad);
 }
 
 .symbols {
