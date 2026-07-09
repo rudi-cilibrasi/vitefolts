@@ -23,6 +23,7 @@ Four example theories are included, each chosen so a different pipeline step get
 - **Peano arithmetic** — the classic axioms, plus a `¬∃x.[NAT(x)]∧[succ(x)=0]` row that double-flips under De Morgan.
 - **Group theory** — closure, associativity, identity, inverses; the "nontrivial" axiom `¬∀x.x=e` flips its quantifier into `∃x.¬(x=e)`.
 - **Socrates & the gods** — syllogisms where `¬∃x.¬MORTAL(x)` cancels a hidden double negation into `∀x.MORTAL(x)`.
+- **Wolf, goat & cabbage** — the classic river crossing as pure logic: only safe crossings are axioms, and proving `REACH(R,R,R,R)` yields an 8-step refutation that *is* the farmer's ferry plan.
 - **Safety interlock** — propositional rules whose biconditionals mint genuine `¬¬` pairs, giving the `¬¬` cancel step real work.
 
 ### Properties of vitefolts
