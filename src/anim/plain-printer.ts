@@ -68,7 +68,14 @@ function printNode(node: SentenceTreeNode, symbol_table: SymbolTable): string {
         case OperationType.FUNCTIONCALL: {
             const entry = symbol_table.find_by_id(bound_vars.get(0)!)!;
             if (entry.is_infix) {
-                return children.map((c) => printNode(c, symbol_table)).join(entry.name);
+                return children.map((c) => {
+                    const s = printNode(c, symbol_table);
+                    // Parenthesize nested infix calls so (x·y)·z ≠ x·(y·z).
+                    const nestedInfix = c.operation === OperationType.FUNCTIONCALL
+                        && !symbol_table.find_definition(c)
+                        && symbol_table.find_by_id(c.bound_vars.get(0)!)!.is_infix;
+                    return nestedInfix ? `(${s})` : s;
+                }).join(entry.name);
             }
             const name = displayName(bound_vars.get(0)!, OperationType.FUNCTIONCALL, symbol_table);
             if (children.size === 0) {

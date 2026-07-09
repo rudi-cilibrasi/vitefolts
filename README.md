@@ -4,7 +4,14 @@
 
 **vitefolts** is a project aimed at building a TypeScript-based First Order Logic (FOL) engine. The name "vitefolts" is derived from its integration with a Vite frontend. More information about Vite can be found at [vitejs.dev](https://vitejs.dev/).
 
-**Live demo: [rudi-cilibrasi.github.io/vitefolts](https://rudi-cilibrasi.github.io/vitefolts/)** — step the Peano axioms through the clausal-form pipeline (eliminate `→`, eliminate `↔`, cancel `¬¬`, push `¬` inward) and watch each rewrite animate: surviving symbols glide along quadratic Bézier splines with time-parameterized easing, and mirror-image conversions animate as reflections — a De Morgan step literally flips `∧` upside down into `∨` (scaleY 1 → −1), and `∃` flips into `∀`. Deleted symbols fade out; new symbols pop in.
+**Live demo: [rudi-cilibrasi.github.io/vitefolts](https://rudi-cilibrasi.github.io/vitefolts/)** — step an axiom set through the clausal-form pipeline (eliminate `→`, eliminate `↔`, cancel `¬¬`, push `¬` inward) and watch each rewrite animate: surviving symbols glide along quadratic Bézier splines with time-parameterized easing, and mirror-image conversions animate as reflections — a De Morgan step literally flips `∧` upside down into `∨` (scaleY 1 → −1), and `∃` flips into `∀`. Deleted symbols fade out; new symbols pop in.
+
+Four example theories are included, each chosen so a different pipeline step gets a dramatic moment:
+
+- **Peano arithmetic** — the classic axioms, plus a `¬∃x.[NAT(x)]∧[succ(x)=0]` row that double-flips under De Morgan.
+- **Group theory** — closure, associativity, identity, inverses; the "nontrivial" axiom `¬∀x.x=e` flips its quantifier into `∃x.¬(x=e)`.
+- **Socrates & the gods** — syllogisms where `¬∃x.¬MORTAL(x)` cancels a hidden double negation into `∀x.MORTAL(x)`.
+- **Safety interlock** — propositional rules whose biconditionals mint genuine `¬¬` pairs, giving the `¬¬` cancel step real work.
 
 ### Properties of vitefolts
 

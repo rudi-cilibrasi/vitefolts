@@ -1,6 +1,6 @@
 import './style.css';
-import { buildPeanoAxioms } from './axioms.ts';
-import { setupApp, PipelineStep } from './ui.ts';
+import { EXAMPLES } from './examples.ts';
+import { setupApp, PipelineStep, ExampleUI } from './ui.ts';
 import {
     clausal_form_iffs_out,
     clausal_form_implications_out,
@@ -8,8 +8,6 @@ import {
     clausal_form_remove_double_negations,
 } from './notation/clause.ts';
 import { print_symbol_table } from './notation/symbol-table-printer.ts';
-
-const { truthBag, axioms } = buildPeanoAxioms();
 
 const steps: PipelineStep[] = [
     {
@@ -34,10 +32,15 @@ const steps: PipelineStep[] = [
     },
 ];
 
-setupApp(
-    document.querySelector<HTMLDivElement>('#app')!,
-    axioms,
-    steps,
-    truthBag.symbol_table,
-    print_symbol_table(truthBag.symbol_table),
-);
+const examples: ExampleUI[] = EXAMPLES.map((def) => {
+    const { truthBag, axioms } = def.build();
+    return {
+        name: def.name,
+        hint: def.hint,
+        axioms,
+        symbolTable: truthBag.symbol_table,
+        symbolTableHtml: print_symbol_table(truthBag.symbol_table),
+    };
+});
+
+setupApp(document.querySelector<HTMLDivElement>('#app')!, examples, steps);

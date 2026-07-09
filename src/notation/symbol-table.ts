@@ -65,6 +65,7 @@ export class SymbolTable {
         st.symbols = this.symbols.set(id, sig);
         st.definitionsForward = this.definitionsForward
         st.definitionsReverse = this.definitionsReverse
+        st.annotations = this.annotations
         return st;
     }
     add_predicate(id: ScopedId, name: string, arity: number, is_infix: boolean): SymbolTable {
@@ -84,6 +85,7 @@ export class SymbolTable {
         st.symbols = this.symbols.set(id, sig);
         st.definitionsForward = this.definitionsForward
         st.definitionsReverse = this.definitionsReverse
+        st.annotations = this.annotations
         return st;
     }
     add_function(id: ScopedId, name: string, arity: number, is_infix: boolean): SymbolTable {
@@ -103,6 +105,7 @@ export class SymbolTable {
         st.symbols = this.symbols.set(id, sig);
         st.definitionsForward = this.definitionsForward
         st.definitionsReverse = this.definitionsReverse
+        st.annotations = this.annotations
         return st;
     }
     add_definition(name: string, sentence: SentenceTreeNode): SymbolTable {
@@ -111,6 +114,7 @@ export class SymbolTable {
         st.symbols = this.symbols
         st.definitionsForward = this.definitionsForward.set(name, sentence)
         st.definitionsReverse = this.definitionsReverse.set(sentence, name)
+        st.annotations = this.annotations
         return st;
     }
     get_annotation(sentence: SentenceTreeNode): string | undefined {
@@ -120,8 +124,9 @@ export class SymbolTable {
         const st = new SymbolTable();
         st.names = this.names
         st.symbols = this.symbols
+        st.definitionsForward = this.definitionsForward
+        st.definitionsReverse = this.definitionsReverse
         st.annotations = this.annotations.set(sentence, annotation)
-        console.log("Added annotation for sentence ", annotation)
         return st;
     }
 }
