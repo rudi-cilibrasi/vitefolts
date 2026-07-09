@@ -209,6 +209,53 @@ header h1 {
     max-width: 60ch;
 }
 
+.keylegend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    font-size: 0.85rem;
+    color: var(--ink-dim);
+}
+
+.editor .keylegend {
+    grid-column: 1 / -1;
+    border-top: 1px dashed var(--border);
+    padding-top: 0.7rem;
+}
+
+.prover .keylegend {
+    margin-bottom: 1.1rem;
+}
+
+.keylegend-intro {
+    margin-right: 0.2rem;
+}
+
+.key-pair {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    white-space: nowrap;
+}
+
+.key-pair kbd {
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 0.8rem;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    padding: 0.1rem 0.4rem;
+    color: var(--ink);
+}
+
+.key-sym {
+    font-family: "STIX Two Math", "Cambria Math", "Noto Sans Math", serif;
+    color: var(--accent-2);
+    font-size: 1rem;
+}
+
 .editor-error {
     grid-column: 1 / -1;
     margin: 0;
