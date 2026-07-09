@@ -1,10 +1,9 @@
 import { OperationType } from "./operation-type";
 import { getName, getScope, ScopedId } from "./scope";
-import { ScopeId } from "./scope";
 import { SentenceTreeNode } from "./sentence-tree-node";
 import { List } from 'immutable';
 import { SymbolTable } from "./symbol-table";
-import { SymbolSignatureInfixMask } from "./signature";
+
 
 function printEscapedSentenceTreeNode(sentence_tree: SentenceTreeNode, indent: number, symbol_table: SymbolTable, getDisplayName: ((a: ScopedId, op: OperationType, symbol_table: SymbolTable) => string)): string {
     const definite = symbol_table.find_definition(sentence_tree);
@@ -42,7 +41,7 @@ function printEscapedSentenceTreeNode(sentence_tree: SentenceTreeNode, indent: n
         case OperationType.EXISTS:
             return `(\\exists (${bound_vars.map((symbol: ScopedId) => getDisplayName(symbol, OperationType.EXISTS, symbol_table)).join(" ")})${printEscapedSentenceTreeNode(children.get(0)!, indent + 1, symbol_table, getDisplayName)})`;
         case OperationType.FUNCTIONCALL:
-            const sym_id = bound_vars.get(0)!
+
             const sym_entry = symbol_table.find_by_id(bound_vars.get(0)!)!
             if (sym_entry.is_infix) {
                 return children.map((child) => printEscapedSentenceTreeNode(child, indent, symbol_table, getDisplayName)).join(sym_entry.name)

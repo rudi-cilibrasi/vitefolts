@@ -18,6 +18,9 @@ export function clausal_form_negations_in(sentence: SentenceTreeNode): SentenceT
     if (childOp == OperationType.EQUALS || childOp == OperationType.PREDICATECALL) {
         return sentence;
     }
+    if (childOp === OperationType.NOT) {
+        return clausal_form_negations_in(child.children.get(0)!);
+    }
     if (childOp !== OperationType.FORALL && childOp !== OperationType.EXISTS && childOp !== OperationType.AND && childOp !== OperationType.OR) {
         console.log("Unexpected operation type in clausal_form_negations_in " + `${OperationType[childOp]}`);
         throw new Error("Unexpected operation type in clausal_form_negations_in " + `${OperationType[childOp]}`);

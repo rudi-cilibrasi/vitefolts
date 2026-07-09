@@ -4,6 +4,8 @@
 
 **vitefolts** is a project aimed at building a TypeScript-based First Order Logic (FOL) engine. The name "vitefolts" is derived from its integration with a Vite frontend. More information about Vite can be found at [vitejs.dev](https://vitejs.dev/).
 
+**Live demo: [rudi-cilibrasi.github.io/vitefolts](https://rudi-cilibrasi.github.io/vitefolts/)** — step the Peano axioms through the clausal-form pipeline (eliminate `→`, eliminate `↔`, cancel `¬¬`, push `¬` inward) and watch each rewrite animate: surviving symbols glide along quadratic Bézier splines with time-parameterized easing, and mirror-image conversions animate as reflections — a De Morgan step literally flips `∧` upside down into `∨` (scaleY 1 → −1), and `∃` flips into `∀`. Deleted symbols fade out; new symbols pop in.
+
 ### Properties of vitefolts
 
 Logic involves the systematic construction ("deduction") of truth through formal methods, which can often be automated. First-order logic (FOL) is a particular subset of logic that offers several user-friendly properties:
@@ -75,7 +77,9 @@ To build and run vitefolts, follow these steps:
    npm run dev
    ```
 4. Open the URL shown in your web browser.
-5. Click the almost invisible top count button to trigger clausal form reductions.
+5. Use **Step** to apply one clausal-form transformation at a time (or **Play all** to run the whole pipeline) and watch the formulas morph.
+
+To build the static site: `npm run build` (output in `dist/`). Pushes to `main` deploy automatically to GitHub Pages via `.github/workflows/deploy.yml`.
 
 By following these steps, you can start exploring the capabilities of vitefolts and its unique approach to First Order Logic.
 
