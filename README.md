@@ -8,6 +8,8 @@
 
 Then **prove a conjecture**: pick a conjecture φ and the engine refutes axioms ∧ ¬φ by **linear resolution with paramodulation** — unification with occurs check, binary resolution, factoring, and equality rewriting, searched by iterative deepening so the shortest proof is found. Every derivation animates with the same glyph engine: the parent clauses fuse, the resolved complementary literals annihilate, and unified variables visibly morph into their substituted terms, ending at the empty clause `□`. Conjectures that don't follow (try `GOD(socrates)`) report an honest search failure.
 
+And **build your own theory**: the **Custom ✎** tab has a formula editor — axioms and conjectures, one per line, with optional `label:` prefixes and `#` comments. The parser accepts exactly what the app displays (so `✎ edit in editor` copies any built-in example in for tweaking, verified round-trip) plus ASCII aliases: `forall`, `exists`, `~`, `&`, `|`, `->`, `<-`, `<->`, `*`. Symbol roles and arities are inferred from use — names applied in formula position are predicates, in term position functions; bare `u`–`z` or quantifier-bound names are variables, anything else is a constant. A typed-conjecture box next to the menu lets you pose your own question on any example.
+
 Four example theories are included, each chosen so a different pipeline step gets a dramatic moment:
 
 - **Peano arithmetic** — the classic axioms, plus a `¬∃x.[NAT(x)]∧[succ(x)=0]` row that double-flips under De Morgan.

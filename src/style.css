@@ -96,6 +96,155 @@ header h1 {
     min-height: 2.2em;
 }
 
+.ex-edit {
+    border-style: dashed;
+    color: var(--accent-2);
+}
+
+.ex-edit:hover:not(:disabled) {
+    color: var(--accent-2);
+    border-color: var(--accent-2);
+}
+
+.editor[hidden] {
+    display: none;
+}
+
+.editor {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 1rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.2rem;
+}
+
+.editor-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.editor-col label {
+    color: var(--ink-dim);
+    font-size: 0.82rem;
+}
+
+.symbar {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.symbar button {
+    font-family: "STIX Two Math", "Cambria Math", "Noto Sans Math", serif;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--ink);
+    cursor: pointer;
+}
+
+.symbar button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.editor textarea {
+    font-family: "STIX Two Math", "Cambria Math", "Noto Sans Math", ui-monospace, monospace;
+    font-size: 0.98rem;
+    line-height: 1.6;
+    background: var(--bg);
+    color: var(--ink);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 0.7rem;
+    resize: vertical;
+    min-height: 4em;
+}
+
+.editor textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.editor-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+}
+
+.editor-actions button {
+    font: inherit;
+    font-weight: 600;
+    padding: 0.45rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--accent-2);
+    background: var(--panel-2);
+    color: var(--accent-2);
+    cursor: pointer;
+}
+
+.editor-actions button:hover:not(:disabled) {
+    box-shadow: 0 0 12px rgba(255, 196, 107, 0.25);
+}
+
+.editor-actions button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.editor-help {
+    color: var(--ink-dim);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    max-width: 60ch;
+}
+
+.editor-error {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: #ff8484;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    font-family: inherit;
+}
+
+.editor-error:empty {
+    display: none;
+}
+
+#conj-typed {
+    font: inherit;
+    font-family: "STIX Two Math", "Cambria Math", "Noto Sans Math", ui-monospace, monospace;
+    flex: 1;
+    min-width: 16rem;
+    background: var(--bg);
+    color: var(--ink);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.45rem 0.6rem;
+}
+
+#conj-typed:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+@media (max-width: 860px) {
+    .editor {
+        grid-template-columns: 1fr;
+    }
+}
+
 .pipeline {
     display: flex;
     flex-wrap: wrap;

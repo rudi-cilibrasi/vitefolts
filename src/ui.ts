@@ -3,6 +3,7 @@ import { animateRow, renderStatic } from './anim/animator';
 import { printPlainSentence, variableDisplayName } from './anim/plain-printer';
 import { eq, not, varr } from './notation/builders';
 import { Clause, StepContext, clauseHasEquality, extractClauses } from './notation/cnf';
+import { ParseError, Registry, parseSentence } from './notation/parser';
 import { Proof, ProverEnv, SideRef, prove } from './notation/resolution';
 import { n2SI, ScopedId } from './notation/scope';
 import { SentenceTreeNode } from './notation/sentence-tree-node';
@@ -29,6 +30,72 @@ function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+const STARTER_AXIOMS = `parent: PARENT(alice, bob)
+parent: PARENT(bob, carol)
+grandparent rule: [PARENT(x,y)]∧[PARENT(y,z)] → GRAND(x,z)`;
+
+const STARTER_CONJECTURES = `GRAND(alice, carol)
+∃z.GRAND(alice, z)
+GRAND(carol, alice)  # not entailed — watch the search fail`;
+
+const CUSTOM_HINT = 'Your own theory. Edit the axioms and conjectures below, hit Apply, then step the pipeline or prove a conjecture. Use “✎ edit in editor” on any example to start from it.';
+
+interface SplitLine {
+    formula: string;
+    label: string;
+    comment: string;
+}
+
+function splitLine(raw: string): SplitLine {
+    let body = raw;
+    let comment = '';
+    const hash = body.indexOf('#');
+    if (hash !== -1) {
+        comment = body.slice(hash + 1).trim();
+        body = body.slice(0, hash);
+    }
+    let label = '';
+    const colon = body.indexOf(':');
+    if (colon !== -1) {
+        label = body.slice(0, colon).trim();
+        body = body.slice(colon + 1);
+    }
+    return { formula: body.trim(), label, comment };
+}
+
+function parseTheory(axText: string, conjText: string): ExampleUI {
+    const reg = new Registry();
+    const axioms: Axiom[] = [];
+    const conjectures: Conjecture[] = [];
+    const errors: string[] = [];
+    axText.split('\n').forEach((raw, ln) => {
+        const { formula, label } = splitLine(raw);
+        if (formula === '') return;
+        try {
+            axioms.push({ tree: parseSentence(formula, reg), note: label });
+        } catch (err) {
+            errors.push(`Axiom line ${ln + 1}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+    });
+    conjText.split('\n').forEach((raw, ln) => {
+        const { formula, comment } = splitLine(raw);
+        if (formula === '') return;
+        try {
+            conjectures.push({ tree: parseSentence(formula, reg), remark: comment || undefined });
+        } catch (err) {
+            errors.push(`Conjecture line ${ln + 1}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+    });
+    if (errors.length > 0) {
+        throw new ParseError(errors.join('\n'));
+    }
+    if (axioms.length === 0) {
+        throw new ParseError('The theory needs at least one axiom.');
+    }
+    const symbolTable = reg.applyTo(new SymbolTable());
+    return { name: 'Custom ✎', hint: CUSTOM_HINT, axioms, conjectures, symbolTable };
+}
+
 export function setupApp(
     root: HTMLElement,
     examples: ExampleUI[],
@@ -43,6 +110,23 @@ export function setupApp(
         </header>
         <section class="examples" id="examples"></section>
         <p class="hint" id="hint"></p>
+        <section class="editor" id="editor" hidden>
+            <div class="editor-col">
+                <label for="ax-input">Axioms — one per line, optionally “label: formula”, # comments</label>
+                <div class="symbar" data-for="ax-input"></div>
+                <textarea id="ax-input" rows="8" spellcheck="false"></textarea>
+            </div>
+            <div class="editor-col">
+                <label for="conj-input">Conjectures — one per line</label>
+                <div class="symbar" data-for="conj-input"></div>
+                <textarea id="conj-input" rows="4" spellcheck="false"></textarea>
+            </div>
+            <div class="editor-actions">
+                <button id="btn-apply" type="button">Apply theory ▸</button>
+                <span class="editor-help">ASCII aliases: forall, exists, ~, &amp;, |, -&gt;, &lt;-&gt;, * · Variables are u–z or quantifier-bound; other names are constants/functions/predicates, inferred from use.</span>
+            </div>
+            <pre class="editor-error" id="editor-error"></pre>
+        </section>
         <section class="pipeline" id="pipeline"></section>
         <section class="controls">
             <button id="btn-step" type="button">Step ▸</button>
@@ -66,6 +150,8 @@ export function setupApp(
             morph into their substituted terms.</p>
             <div class="prover-controls">
                 <select id="conjecture"></select>
+                <input id="conj-typed" type="text" spellcheck="false"
+                    placeholder="… or type your own, e.g. ∃x.MORTAL(x)" />
                 <button id="btn-prove" type="button">Prove ▸</button>
             </div>
             <div class="clauses" id="clauses"></div>
@@ -92,20 +178,52 @@ export function setupApp(
     const resetBtn = root.querySelector<HTMLButtonElement>('#btn-reset')!;
     const speedSel = root.querySelector<HTMLSelectElement>('#speed')!;
     const conjectureSel = root.querySelector<HTMLSelectElement>('#conjecture')!;
+    const conjTypedInput = root.querySelector<HTMLInputElement>('#conj-typed')!;
     const proveBtn = root.querySelector<HTMLButtonElement>('#btn-prove')!;
     const clausesEl = root.querySelector<HTMLElement>('#clauses')!;
     const proofEl = root.querySelector<HTMLElement>('#proof')!;
     const verdictEl = root.querySelector<HTMLElement>('#verdict')!;
+    const editorEl = root.querySelector<HTMLElement>('#editor')!;
+    const axInput = root.querySelector<HTMLTextAreaElement>('#ax-input')!;
+    const conjInput = root.querySelector<HTMLTextAreaElement>('#conj-input')!;
+    const applyBtn = root.querySelector<HTMLButtonElement>('#btn-apply')!;
+    const editorErrEl = root.querySelector<HTMLElement>('#editor-error')!;
 
-    const exampleTabs: HTMLButtonElement[] = examples.map((ex, k) => {
+    const allExamples: ExampleUI[] = [...examples, parseTheory(STARTER_AXIOMS, STARTER_CONJECTURES)];
+    const customIndex = allExamples.length - 1;
+    axInput.value = STARTER_AXIOMS;
+    conjInput.value = STARTER_CONJECTURES;
+
+    const exampleTabs: HTMLButtonElement[] = allExamples.map((ex, k) => {
         const tab = document.createElement('button');
         tab.type = 'button';
         tab.className = 'ex-tab';
         tab.textContent = ex.name;
-        tab.addEventListener('click', () => selectExample(k));
+        tab.addEventListener('click', () => loadExample(k));
         examplesEl.appendChild(tab);
         return tab;
     });
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'ex-tab ex-edit';
+    editBtn.textContent = '✎ edit in editor';
+    editBtn.title = 'Copy the current example into the Custom editor';
+    examplesEl.appendChild(editBtn);
+
+    for (const bar of Array.from(root.querySelectorAll<HTMLElement>('.symbar'))) {
+        const target = root.querySelector<HTMLTextAreaElement>(`#${bar.dataset.for}`)!;
+        for (const sym of ['∀', '∃', '¬', '∧', '∨', '→', '↔', '=', '·']) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = sym;
+            b.addEventListener('click', () => {
+                const at = target.selectionStart ?? target.value.length;
+                target.setRangeText(sym, at, target.selectionEnd ?? at, 'end');
+                target.focus();
+            });
+            bar.appendChild(b);
+        }
+    }
 
     const chips: HTMLElement[] = steps.map((step) => {
         const chip = document.createElement('div');
@@ -154,7 +272,7 @@ export function setupApp(
     };
 
     function current(): ExampleUI {
-        return examples[exampleIndex];
+        return allExamples[exampleIndex];
     }
 
     function litToString(positive: boolean, atom: SentenceTreeNode): string {
@@ -201,6 +319,13 @@ export function setupApp(
 
     function populateConjectures(): void {
         conjectureSel.textContent = '';
+        if (current().conjectures.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = '— no conjectures defined —';
+            conjectureSel.appendChild(opt);
+            return;
+        }
         current().conjectures.forEach((c, k) => {
             const opt = document.createElement('option');
             opt.value = String(k);
@@ -227,13 +352,16 @@ export function setupApp(
         speedSel.disabled = busy;
         proveBtn.disabled = busy;
         conjectureSel.disabled = busy;
+        conjTypedInput.disabled = busy;
+        applyBtn.disabled = busy;
+        editBtn.disabled = busy;
         if (finished && !busy && statusEl.textContent === '') {
             statusEl.textContent = 'Done — every sentence is in clausal normal form.';
         }
     }
 
-    function selectExample(k: number): void {
-        if (busy || k === exampleIndex) return;
+    function loadExample(k: number, force = false): void {
+        if (busy || (!force && k === exampleIndex)) return;
         session++;
         exampleIndex = k;
         const ex = current();
@@ -244,12 +372,48 @@ export function setupApp(
         stepIndex = 0;
         statusEl.textContent = '';
         hintEl.textContent = ex.hint;
+        editorEl.hidden = k !== customIndex;
+        conjTypedInput.value = '';
         refreshSymtab();
         clearProver();
         populateConjectures();
         buildRows(ex.axioms);
         renderAll();
         updateChrome();
+    }
+
+    function serializeAxioms(ex: ExampleUI): string {
+        return ex.axioms
+            .map((a) => (a.note ? `${a.note}: ` : '') + printPlainSentence(a.tree, ex.symbolTable))
+            .join('\n');
+    }
+
+    function serializeConjectures(ex: ExampleUI): string {
+        return ex.conjectures
+            .map((c) => printPlainSentence(c.tree, ex.symbolTable) + (c.remark ? `  # ${c.remark}` : ''))
+            .join('\n');
+    }
+
+    function applyEditor(): void {
+        if (busy) return;
+        try {
+            allExamples[customIndex] = parseTheory(axInput.value, conjInput.value);
+            editorErrEl.textContent = '';
+            loadExample(customIndex, true);
+        } catch (err) {
+            if (exampleIndex !== customIndex) {
+                loadExample(customIndex, true);
+            }
+            editorErrEl.textContent = err instanceof Error ? err.message : String(err);
+        }
+    }
+
+    function editCurrentExample(): void {
+        if (busy) return;
+        const ex = current();
+        axInput.value = serializeAxioms(ex);
+        conjInput.value = serializeConjectures(ex);
+        applyEditor();
     }
 
     function durationMult(): number {
@@ -385,9 +549,27 @@ export function setupApp(
 
     async function doProve(): Promise<void> {
         if (busy) return;
-        const conjIndex = parseInt(conjectureSel.value, 10);
-        const conjecture = current().conjectures[conjIndex];
-        if (!conjecture) return;
+        let conjTree: SentenceTreeNode;
+        const typed = conjTypedInput.value.trim();
+        if (typed !== '') {
+            try {
+                const reg = Registry.fromSymbolTable(workingSt);
+                conjTree = parseSentence(typed, reg);
+                workingSt = reg.applyTo(workingSt);
+            } catch (err) {
+                verdictEl.textContent = `✗ Could not parse the conjecture: ${err instanceof Error ? err.message : String(err)}`;
+                verdictEl.className = 'verdict fail';
+                return;
+            }
+        } else {
+            const conjecture = current().conjectures[parseInt(conjectureSel.value, 10)];
+            if (!conjecture) {
+                verdictEl.textContent = 'Pick a conjecture from the menu or type one first.';
+                verdictEl.className = 'verdict';
+                return;
+            }
+            conjTree = conjecture.tree;
+        }
         clearProver();
 
         // Make sure the displayed pipeline has run to clausal form first.
@@ -410,7 +592,7 @@ export function setupApp(
                     numbered.push({ clause, label: ex.axioms[k].note });
                 }
             });
-            let negated = not(conjecture.tree);
+            let negated = not(conjTree);
             for (const step of steps) {
                 negated = step.transform(negated, ctx);
             }
@@ -425,7 +607,7 @@ export function setupApp(
             }
             refreshSymtab();
 
-            verdictEl.textContent = `Refuting: axioms ∧ ¬(${printPlainSentence(conjecture.tree, ex.symbolTable)}) — searching for □ …`;
+            verdictEl.textContent = `Refuting: axioms ∧ ¬(${printPlainSentence(conjTree, workingSt)}) — searching for □ …`;
             for (let i = 0; i < numbered.length; i++) {
                 addClauseRow(clausesEl, i + 1, numbered[i].label, clauseToString(numbered[i].clause));
                 await sleep(90 * durationMult());
@@ -454,6 +636,11 @@ export function setupApp(
     playBtn.addEventListener('click', () => { void playAll(); });
     resetBtn.addEventListener('click', reset);
     proveBtn.addEventListener('click', () => { void doProve(); });
+    applyBtn.addEventListener('click', applyEditor);
+    editBtn.addEventListener('click', editCurrentExample);
+    conjTypedInput.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') void doProve();
+    });
 
-    selectExample(0);
+    loadExample(0);
 }
