@@ -1,4 +1,12 @@
+<p align="center">
+  <a href="https://rudi-cilibrasi.github.io/vitefolts/"><img src="public/logo.svg" width="140" alt="vitefolts logo: a universal quantifier and its reflection"></a>
+</p>
+
 # vitefolts
+
+[![Live demo](https://img.shields.io/badge/live%20demo-rudi--cilibrasi.github.io%2Fvitefolts-62b6ff)](https://rudi-cilibrasi.github.io/vitefolts/)
+
+![vitefolts — animated first-order logic](public/og-image.png)
 
 ## vitefolts: A TypeScript First Order Logic Engine
 

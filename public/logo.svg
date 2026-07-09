@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="vitefolts logo: a universal quantifier and its reflection">
+  <defs>
+    <linearGradient id="ink" gradientUnits="userSpaceOnUse" x1="152" y1="92" x2="360" y2="276">
+      <stop offset="0" stop-color="#62b6ff"/>
+      <stop offset="1" stop-color="#ffc46b"/>
+    </linearGradient>
+    <linearGradient id="mirror" gradientUnits="userSpaceOnUse" x1="0" y1="276" x2="0" y2="92">
+      <stop offset="0" stop-color="#62b6ff" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#62b6ff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="bg" cx="0.5" cy="0.38" r="0.75">
+      <stop offset="0" stop-color="#1a2740"/>
+      <stop offset="1" stop-color="#0e1116"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="100" fill="url(#bg)"/>
+  <rect x="6" y="6" width="500" height="500" rx="94" fill="none" stroke="#2a3345" stroke-width="4"/>
+  <!-- ∀ drawn as strokes so no font is required -->
+  <g stroke="url(#ink)" stroke-width="36" stroke-linecap="round" fill="none">
+    <path d="M 152 92 L 256 276 L 360 92"/>
+    <path d="M 219 182 L 293 182"/>
+  </g>
+  <!-- its reflection, fading out: the app's signature move -->
+  <g stroke="url(#mirror)" stroke-width="36" stroke-linecap="round" fill="none" transform="translate(0,584) scale(1,-1)">
+    <path d="M 152 92 L 256 276 L 360 92"/>
+    <path d="M 219 182 L 293 182"/>
+  </g>
+</svg>
