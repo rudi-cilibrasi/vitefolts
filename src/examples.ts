@@ -150,7 +150,7 @@ function buildRiverCrossing(): AxiomSet {
         { tree: implies(at(L, R, L, L), at(R, R, L, R)), note: 'take cabbage →' },
         { tree: implies(at(R, R, L, R), at(L, R, L, R)), note: '← row back' },
         { tree: implies(at(L, R, L, R), at(R, R, R, R)), note: 'take goat →' },
-        { tree: implies(at(L, L, R, L), at(R, L, R, R)), note: 'or: take cabbage →' },
+        { tree: implies(at(L, L, R, L), at(R, L, R, R)), note: 'or — take cabbage →' },
         { tree: implies(at(R, L, R, R), at(L, L, L, R)), note: '← bring goat back' },
         { tree: implies(at(L, L, L, R), at(R, R, L, R)), note: 'take wolf →' },
     ];

@@ -1,48 +1,64 @@
 import { AlignOp } from "./diff";
 import { alignGlyphs } from "./diff";
 
-// Animates a row of glyphs from its current text to a new text.
+// Animates a row of MathML between two renders, Nam's sprite idea done with
+// DOM nodes instead of rasters:
 //
-// * Surviving glyphs travel along quadratic Bézier splines (time-parameterized
-//   with cubic in/out easing, slightly staggered left to right).
-// * mirrorY substitutions (∧ ↔ ∨) animate as a continuous scaleY(1 → -1)
-//   reflection: the old glyph literally flips into the new one.
-// * flipX substitutions (∀ ↔ ∃, brackets) flip through zero width and swap
-//   the character at the midpoint.
-// * Deleted glyphs shrink and fade out early; inserted glyphs pop in late.
+// 1. The old and new formulas are both real MathML renders; the new one is
+//    measured in an offscreen probe. Every token (<mi>/<mo>/<mn>) yields a
+//    position plus its computed font, so typography comes from the browser's
+//    math layout engine.
+// 2. During the animation the MathML is swapped for absolutely-positioned
+//    "sprite" spans cloned from those tokens (real text nodes — crisp at any
+//    scale, no alpha masks needed).
+// 3. Surviving tokens travel along quadratic Bézier splines (eased, slightly
+//    staggered); mirrorY substitutions (∧ ↔ ∨) flip as a continuous
+//    scaleY(1 → -1) reflection; flipX substitutions (∀ ↔ ∃, brackets) flip
+//    through zero and swap at the midpoint; deletions shrink out early and
+//    insertions pop in late.
+// 4. At the end the sprites are replaced by the true MathML render.
 
-export interface Glyph {
-    ch: string;
+interface MToken {
+    text: string;
     x: number;
     y: number;
+    h: number;
+    fontFamily: string;
+    fontSize: string;
+    fontStyle: string;
 }
 
-function makeGlyphSpan(ch: string): HTMLSpanElement {
-    const s = document.createElement('span');
-    s.className = 'g';
-    s.textContent = ch;
-    return s;
-}
-
-export function renderStatic(container: HTMLElement, text: string): void {
+export function renderMath(container: HTMLElement, inner: string): void {
     container.classList.remove('animating');
     container.style.removeProperty('height');
-    container.textContent = '';
-    for (const ch of text) {
-        container.appendChild(makeGlyphSpan(ch));
-    }
+    container.dataset.mml = inner;
+    container.innerHTML = `<math>${inner}</math>`;
 }
 
-function measureGlyphs(container: HTMLElement): Glyph[] {
-    const glyphs: Glyph[] = [];
-    for (const child of Array.from(container.children)) {
-        const el = child as HTMLElement;
-        glyphs.push({ ch: el.textContent ?? '', x: el.offsetLeft, y: el.offsetTop });
-    }
-    return glyphs;
+export function currentMath(container: HTMLElement): string {
+    return container.dataset.mml ?? '';
 }
 
-function measureNewLayout(container: HTMLElement, text: string): { glyphs: Glyph[]; height: number } {
+function collectTokens(container: HTMLElement): MToken[] {
+    const cRect = container.getBoundingClientRect();
+    const tokens: MToken[] = [];
+    for (const el of Array.from(container.querySelectorAll('mi, mo, mn, mtext'))) {
+        const r = el.getBoundingClientRect();
+        const cs = window.getComputedStyle(el);
+        tokens.push({
+            text: el.textContent ?? '',
+            x: r.left - cRect.left + container.scrollLeft,
+            y: r.top - cRect.top + container.scrollTop,
+            h: r.height,
+            fontFamily: cs.fontFamily,
+            fontSize: cs.fontSize,
+            fontStyle: cs.fontStyle,
+        });
+    }
+    return tokens;
+}
+
+function measureNewLayout(container: HTMLElement, inner: string): { tokens: MToken[]; height: number } {
     const probe = document.createElement('div');
     probe.className = container.className;
     probe.classList.remove('animating');
@@ -52,11 +68,25 @@ function measureNewLayout(container: HTMLElement, text: string): { glyphs: Glyph
     probe.style.top = '0';
     probe.style.width = `${container.clientWidth}px`;
     container.parentElement!.appendChild(probe);
-    renderStatic(probe, text);
-    const glyphs = measureGlyphs(probe);
+    renderMath(probe, inner);
+    const tokens = collectTokens(probe);
     const height = probe.offsetHeight;
     probe.remove();
-    return { glyphs, height };
+    return { tokens, height };
+}
+
+function makeSprite(token: MToken): HTMLSpanElement {
+    const s = document.createElement('span');
+    s.className = 'g';
+    s.textContent = token.text;
+    s.style.left = `${token.x}px`;
+    s.style.top = `${token.y}px`;
+    s.style.height = `${token.h}px`;
+    s.style.lineHeight = `${token.h}px`;
+    s.style.fontFamily = token.fontFamily;
+    s.style.fontSize = token.fontSize;
+    s.style.fontStyle = token.fontStyle;
+    return s;
 }
 
 function easeInOutCubic(t: number): number {
@@ -70,7 +100,6 @@ function clamp01(t: number): number {
 interface Actor {
     el: HTMLSpanElement;
     apply: (t: number) => void;   // t is global progress in [0, 1]
-    finalCh?: string;
 }
 
 // Position along a quadratic Bézier from (0,0) to (dx,dy), bowed sideways.
@@ -96,20 +125,14 @@ function windowT(t: number, start: number, end: number): number {
     return clamp01((t - start) / (end - start));
 }
 
-export function rowNeedsAnimation(container: HTMLElement, newText: string): boolean {
-    const oldText = Array.from(container.children).map((c) => c.textContent ?? '').join('');
-    return oldText !== newText;
-}
-
-export function animateRow(container: HTMLElement, newText: string, duration: number): Promise<void> {
-    const oldGlyphs = measureGlyphs(container);
-    const oldText = oldGlyphs.map((g) => g.ch).join('');
-    if (oldText === newText) {
+export function animateMath(container: HTMLElement, newInner: string, duration: number): Promise<void> {
+    if (currentMath(container) === newInner) {
         return Promise.resolve();
     }
+    const oldTokens = collectTokens(container);
     const oldHeight = container.offsetHeight;
-    const { glyphs: newGlyphs, height: newHeight } = measureNewLayout(container, newText);
-    const ops: AlignOp[] = alignGlyphs(oldGlyphs.map((g) => g.ch), newGlyphs.map((g) => g.ch));
+    const { tokens: newTokens, height: newHeight } = measureNewLayout(container, newInner);
+    const ops: AlignOp[] = alignGlyphs(oldTokens.map((t) => t.text), newTokens.map((t) => t.text));
 
     container.classList.add('animating');
     container.style.height = `${Math.max(oldHeight, newHeight)}px`;
@@ -120,11 +143,7 @@ export function animateRow(container: HTMLElement, newText: string, duration: nu
     let moveIndex = 0;
     for (const op of ops) {
         if (op.type === 'del') {
-            const g = oldGlyphs[op.i];
-            if (g.ch.trim() === '') continue;
-            const el = makeGlyphSpan(g.ch);
-            el.style.left = `${g.x}px`;
-            el.style.top = `${g.y}px`;
+            const el = makeSprite(oldTokens[op.i]);
             actors.push({
                 el,
                 apply: (t) => {
@@ -134,11 +153,7 @@ export function animateRow(container: HTMLElement, newText: string, duration: nu
                 },
             });
         } else if (op.type === 'ins') {
-            const g = newGlyphs[op.j];
-            if (g.ch.trim() === '') continue;
-            const el = makeGlyphSpan(g.ch);
-            el.style.left = `${g.x}px`;
-            el.style.top = `${g.y}px`;
+            const el = makeSprite(newTokens[op.j]);
             el.style.opacity = '0';
             actors.push({
                 el,
@@ -149,36 +164,29 @@ export function animateRow(container: HTMLElement, newText: string, duration: nu
                 },
             });
         } else {
-            const from = oldGlyphs[op.i];
-            const to = newGlyphs[op.j];
-            const isSpace = from.ch.trim() === '' && to.ch.trim() === '';
-            if (isSpace) continue;
-            const el = makeGlyphSpan(from.ch);
-            el.style.left = `${from.x}px`;
-            el.style.top = `${from.y}px`;
+            const from = oldTokens[op.i];
+            const to = newTokens[op.j];
+            const el = makeSprite(from);
             const dx = to.x - from.x;
             const dy = to.y - from.y;
             const bowSign = moveIndex % 2 === 0 ? 1 : -1;
-            // Staggered wave: each surviving glyph departs a little after the
+            // Staggered wave: each surviving token departs a little after the
             // one to its left, all arriving before the timeline ends.
             const stagger = moveCount > 1 ? (moveIndex / (moveCount - 1)) * 0.18 : 0;
             const start = stagger;
             const end = 0.82 + stagger;
             moveIndex++;
             if (op.type === 'sub' && op.kind === 'mirrorY') {
-                const fromCh = from.ch;
-                const toCh = to.ch;
+                const fromCh = from.text;
+                const toCh = to.text;
                 actors.push({
                     el,
-                    finalCh: toCh,
                     apply: (t) => {
                         const w = easeInOutCubic(windowT(t, start, end));
                         const p = splineOffset(dx, dy, bowSign, w);
                         // Continuous reflection: ∧ flipped upside-down *is* ∨.
                         const scaleY = Math.cos(Math.PI * w);
                         if (w >= 0.5 && el.textContent !== toCh) {
-                            // Past the flip midpoint show the target glyph,
-                            // mirrored, so it un-mirrors into place.
                             el.textContent = toCh;
                         } else if (w < 0.5 && el.textContent !== fromCh) {
                             el.textContent = fromCh;
@@ -188,11 +196,10 @@ export function animateRow(container: HTMLElement, newText: string, duration: nu
                     },
                 });
             } else if (op.type === 'sub') {
-                const fromCh = from.ch;
-                const toCh = to.ch;
+                const fromCh = from.text;
+                const toCh = to.text;
                 actors.push({
                     el,
-                    finalCh: toCh,
                     apply: (t) => {
                         const w = easeInOutCubic(windowT(t, start, end));
                         const p = splineOffset(dx, dy, bowSign, w);
@@ -227,7 +234,7 @@ export function animateRow(container: HTMLElement, newText: string, duration: nu
             if (t < 1) {
                 requestAnimationFrame(frame);
             } else {
-                renderStatic(container, newText);
+                renderMath(container, newInner);
                 resolve();
             }
         };
