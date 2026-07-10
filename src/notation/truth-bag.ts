@@ -2,7 +2,6 @@ import { Set } from 'immutable'
 import { SymbolTable } from './symbol-table';
 import { SentenceTreeNode } from './sentence-tree-node';
 import { ScopedId } from './scope';
-import { printEscapedSentenceTree } from './sentence-tree-printer';
 import { OperationType } from './operation-type';
 import { has_node_type_in_set, inspect_sentence_node_types } from './stn-inspector-types';
 export class TruthBag {
@@ -45,19 +44,10 @@ export class TruthBag {
         return tb;
     }
     add_sentence(sentence: SentenceTreeNode, annotation?: string) {
-        console.log("Annotation is ", annotation)
-        if (annotation === undefined) {
-            annotation = ''
-        }
         const tb = new TruthBag();
-        const desc = printEscapedSentenceTree(sentence, this.symbol_table)
-        console.log("Adding: ", printEscapedSentenceTree(sentence, this.symbol_table))
-        if (desc === '0 =0 ') {
-            debugger;
-        }
         tb.sentences = this.sentences.add(sentence)
         tb.symbol_table = this.symbol_table
-        if (annotation.length > 0) {
+        if (annotation !== undefined && annotation.length > 0) {
             tb.symbol_table = tb.symbol_table.add_annotation(annotation, sentence)
         }
         return tb

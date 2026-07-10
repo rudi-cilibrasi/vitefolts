@@ -22,10 +22,8 @@ export function clausal_form_negations_in(sentence: SentenceTreeNode): SentenceT
         return clausal_form_negations_in(child.children.get(0)!);
     }
     if (childOp !== OperationType.FORALL && childOp !== OperationType.EXISTS && childOp !== OperationType.AND && childOp !== OperationType.OR) {
-        console.log("Unexpected operation type in clausal_form_negations_in " + `${OperationType[childOp]}`);
         throw new Error("Unexpected operation type in clausal_form_negations_in " + `${OperationType[childOp]}`);
     }
-    console.log("Found negated operation " + OperationType[childOp]);
     if (childOp === OperationType.FORALL || childOp === OperationType.EXISTS) {
         const quantifiedChild = child.children.get(0)!;
         const otherOp = childOp == OperationType.FORALL ? OperationType.EXISTS : OperationType.FORALL;

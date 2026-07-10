@@ -35,7 +35,6 @@ export function getScope(id: ScopedId): ScopeId {
 
 export function getName(id: ScopedId): NameId {
     if (id === undefined) {
-        debugger;
         return BigInt(0);
     }
     return BigInt(id & MAX_SCOPE_BITS_MASK);
