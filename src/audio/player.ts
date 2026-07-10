@@ -104,11 +104,24 @@ function playTone(ac: AudioContext, freq: number, ms: number, role: string): voi
         osc.type = 'triangle';
         osc.frequency.value = freq;
         gain.gain.setValueAtTime(0.0001, t);
-        gain.gain.exponentialRampToValueAtTime(0.34, t + 0.005);
+        gain.gain.exponentialRampToValueAtTime(0.5, t + 0.004);
         gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
         osc.connect(gain).connect(ac.destination);
         osc.start(t);
         osc.stop(t + 0.26);
+        // A short bright transient an octave up so every hit cuts through
+        // regardless of its register — a high name (e.g. L) doesn't get lost
+        // against a low one (e.g. R).
+        const click = ac.createOscillator();
+        const clickGain = ac.createGain();
+        click.type = 'triangle';
+        click.frequency.value = freq * 2;
+        clickGain.gain.setValueAtTime(0.0001, t);
+        clickGain.gain.exponentialRampToValueAtTime(0.22, t + 0.003);
+        clickGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+        click.connect(clickGain).connect(ac.destination);
+        click.start(t);
+        click.stop(t + 0.06);
         return;
     }
 
