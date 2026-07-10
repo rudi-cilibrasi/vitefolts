@@ -80,3 +80,20 @@ describe('non-theorems the prover must reject (bounded search)', () => {
         expect(proveConjecture(PEANO_ARITH, 'succ(0) + 0 = 0', { maxDepth: 8 }).proved).toBe(false);
     });
 });
+
+describe('deep search under a per-depth attempt budget', () => {
+    // A long modus-ponens chain P0, P0→P1, …, P9→P10 ⊢ P10 needs an 11-step
+    // refutation. With the attempt budget shared across iterative-deepening
+    // depths, shallow re-search exhausts a small budget before the search
+    // reaches depth 11; resetting per depth finds it.
+    // At maxAttempts=60 a single shared budget is exhausted by shallow
+    // re-search and never reaches the depth-11 refutation (verified: it fails
+    // with the shared budget, succeeds once reset per depth).
+    const CHAIN = 10;
+    const axioms = ['P0', ...Array.from({ length: CHAIN }, (_, i) => `P${i} -> P${i + 1}`)];
+
+    it('proves the end of a long chain within a tight per-depth budget', () => {
+        const result = proveConjecture(axioms, `P${CHAIN}`, { maxDepth: 14, maxAttempts: 60 });
+        expect(result.proved).toBe(true);
+    });
+});

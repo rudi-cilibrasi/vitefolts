@@ -132,15 +132,20 @@ interface Candidate {
     step: ProofStep;
 }
 
-const MAX_LITERALS = 6;
-const MAX_CLAUSE_SIZE = 60;
+const DEFAULT_MAX_LITERALS = 6;
+const DEFAULT_MAX_CLAUSE_SIZE = 60;
 
-function candidatesWith(center: Clause, side: Clause, sideRef: SideRef, env: ProverEnv): Candidate[] {
+interface ClauseLimits {
+    maxLiterals: number;
+    maxClauseSize: number;
+}
+
+function candidatesWith(center: Clause, side: Clause, sideRef: SideRef, env: ProverEnv, limits: ClauseLimits): Candidate[] {
     const out: Candidate[] = [];
     const renamed = renameClause(side, env);
     const push = (kind: ProofStep['kind'], subst: Subst, resolvent: Clause, withSide: boolean) => {
-        if (resolvent.literals.length > MAX_LITERALS) return;
-        if (clauseSize(resolvent) > MAX_CLAUSE_SIZE) return;
+        if (resolvent.literals.length > limits.maxLiterals) return;
+        if (clauseSize(resolvent) > limits.maxClauseSize) return;
         if (isTautology(resolvent)) return;
         out.push({
             step: {
@@ -227,12 +232,23 @@ function factorCandidates(center: Clause): Candidate[] {
 
 export interface ProveOptions {
     maxDepth?: number;
+    // Attempt budget PER iterative-deepening depth (reset at each depth), not
+    // a single budget shared across depths — otherwise shallow re-search burns
+    // it and deep proofs become unreachable.
     maxAttempts?: number;
+    // Hard caps that prune oversized resolvents during search. Raising them
+    // lets larger clauses through at the cost of a bigger search space.
+    maxLiterals?: number;
+    maxClauseSize?: number;
 }
 
 export function prove(inputs: Clause[], sosIndices: number[], env: ProverEnv, options?: ProveOptions): Proof | null {
     const maxDepth = options?.maxDepth ?? 8;
     const budget = { attempts: 0, max: options?.maxAttempts ?? 20000 };
+    const limits: ClauseLimits = {
+        maxLiterals: options?.maxLiterals ?? DEFAULT_MAX_LITERALS,
+        maxClauseSize: options?.maxClauseSize ?? DEFAULT_MAX_CLAUSE_SIZE,
+    };
 
     const dfs = (
         center: Clause,
@@ -246,10 +262,10 @@ export function prove(inputs: Clause[], sosIndices: number[], env: ProverEnv, op
 
         const candidates: Candidate[] = [];
         inputs.forEach((clause, index) => {
-            candidates.push(...candidatesWith(center, clause, { kind: 'input', index }, env));
+            candidates.push(...candidatesWith(center, clause, { kind: 'input', index }, env, limits));
         });
         derived.forEach((clause, index) => {
-            candidates.push(...candidatesWith(center, clause, { kind: 'derived', index }, env));
+            candidates.push(...candidatesWith(center, clause, { kind: 'derived', index }, env, limits));
         });
         candidates.push(...factorCandidates(center));
         candidates.sort((a, b) => a.step.resolvent.literals.length - b.step.resolvent.literals.length
@@ -271,6 +287,10 @@ export function prove(inputs: Clause[], sosIndices: number[], env: ProverEnv, op
     };
 
     for (let depth = 1; depth <= maxDepth; depth++) {
+        // Fresh budget for each depth: iterative deepening re-explores the
+        // shallow layers every pass, so a single shared budget would be spent
+        // there before the search ever reaches the depth a long proof needs.
+        budget.attempts = 0;
         for (const start of sosIndices) {
             const center = inputs[start];
             const steps = dfs(center, [], new Set([clauseKey(center)]), depth);
