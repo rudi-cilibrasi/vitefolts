@@ -401,10 +401,16 @@ export function setupApp(
             playRev.title = 'Hear this formula — right → left';
             playRev.addEventListener('click', () => hearContainer(glyphs, 'reverse'));
 
+            // ▶ [ formula ] ◀ share one flex cell so they sit at the ends of
+            // the (scrollable) formula rather than stretching the grid column.
+            const formulaRow = document.createElement('div');
+            formulaRow.className = 'formula-row';
+            formulaRow.appendChild(playFwd);
+            formulaRow.appendChild(glyphs);
+            formulaRow.appendChild(playRev);
+
             row.appendChild(label);
-            row.appendChild(playFwd);
-            row.appendChild(glyphs);
-            row.appendChild(playRev);
+            row.appendChild(formulaRow);
             sentencesEl.appendChild(row);
             rowGlyphEls.push(glyphs);
         }
