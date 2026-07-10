@@ -165,6 +165,41 @@ function buildRiverCrossing(): AxiomSet {
     return { truthBag, axioms, conjectures };
 }
 
+function buildAncestry(): AxiomSet {
+    const PARENT_id = n2SI(0, 0);
+    const ANC_id = n2SI(0, 1);
+    const x_id = n2SI(1, 0);
+    const y_id = n2SI(1, 1);
+    const z_id = n2SI(1, 2);
+
+    let truthBag = new TruthBag();
+    truthBag = truthBag.add_predicate(PARENT_id, 'PARENT', 2, false);
+    truthBag = truthBag.add_predicate(ANC_id, 'ANC', 2, false);
+
+    const x = varr(x_id);
+    const y = varr(y_id);
+    const z = varr(z_id);
+    const PARENT = (a: SentenceTreeNode, b: SentenceTreeNode) => pred(PARENT_id, a, b);
+    const ANC = (a: SentenceTreeNode, b: SentenceTreeNode) => pred(ANC_id, a, b);
+
+    const axioms: Axiom[] = [
+        // ∀x ∃y. PARENT(y, x) — the ∃y under a ∀x Skolemizes to a genuine
+        // unary function σ(x), the one example where a Skolem *function*
+        // (not just a constant) appears.
+        { tree: forall([x_id], exists([y_id], PARENT(y, x))), note: 'everyone has a parent' },
+        { tree: forall([x_id, y_id], implies(PARENT(x, y), ANC(x, y))), note: 'a parent is an ancestor' },
+        { tree: forall([x_id, y_id, z_id], implies(and(ANC(x, y), ANC(y, z)), ANC(x, z))), note: 'ancestry is transitive' },
+    ];
+    const conjectures: Conjecture[] = [
+        { tree: forall([x_id], exists([z_id], ANC(z, x))), remark: 'everyone has an ancestor — closes on the Skolem parent σ(x)' },
+        { tree: exists([x_id], forall([z_id], not(PARENT(z, x)))), remark: 'someone with no parent — not entailed, watch the search fail' },
+    ];
+    for (const a of axioms) {
+        truthBag = truthBag.add_sentence(a.tree, a.note);
+    }
+    return { truthBag, axioms, conjectures };
+}
+
 export const EXAMPLES: ExampleDef[] = [
     {
         name: 'Peano arithmetic',
@@ -190,5 +225,10 @@ export const EXAMPLES: ExampleDef[] = [
         name: 'Safety interlock',
         hint: 'Propositional machine-safety rules. The biconditionals mint genuine ¬¬ pairs — the only example where the ¬¬ cancel step has real work to do.',
         build: buildInterlock,
+    },
+    {
+        name: 'Ancestry',
+        hint: 'Everyone has a parent (∀x∃y), a parent is an ancestor, and ancestry is transitive. The ∃ under the ∀ Skolemizes to a real unary function σ(x) — the only example with a Skolem function rather than a constant. Prove everyone has an ancestor; the proof closes on σ of the negated-conjecture Skolem constant.',
+        build: buildAncestry,
     },
 ];
