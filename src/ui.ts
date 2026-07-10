@@ -6,6 +6,7 @@ import { eq, not, varr } from './notation/builders';
 import { Clause, StepContext, clauseHasEquality, extractClauses } from './notation/cnf';
 import { ParseError, Registry, parseSentence } from './notation/parser';
 import { Proof, ProverEnv, SideRef, prove } from './notation/resolution';
+import { proofInputIndices } from './notation/engine';
 import { n2SI, ScopedId } from './notation/scope';
 import { SentenceTreeNode } from './notation/sentence-tree-node';
 import { SymbolTable } from './notation/symbol-table';
@@ -701,7 +702,13 @@ export function setupApp(
                 verdictEl.className = 'verdict fail';
             } else {
                 await animateProof(numbered, proof);
-                verdictEl.textContent = `□ Empty clause derived in ${proof.steps.length} step${proof.steps.length === 1 ? '' : 's'} — contradiction. The conjecture is a theorem.`;
+                const usedLabels = Array.from(new Set(
+                    proofInputIndices(proof)
+                        .map((i) => numbered[i]?.label)
+                        .filter((l): l is string => l !== undefined && l !== '¬ conjecture' && l !== 'reflexivity'),
+                ));
+                const usedNote = usedLabels.length > 0 ? ` Axioms used: ${usedLabels.join(', ')}.` : '';
+                verdictEl.textContent = `□ Empty clause derived in ${proof.steps.length} step${proof.steps.length === 1 ? '' : 's'} — contradiction. The conjecture is a theorem.${usedNote}`;
                 verdictEl.className = 'verdict ok';
             }
         } catch (err) {
