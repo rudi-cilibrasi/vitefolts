@@ -103,5 +103,33 @@ To build and run vitefolts, follow these steps:
 
 To build the static site: `npm run build` (output in `dist/`). Pushes to `main` deploy automatically to GitHub Pages via `.github/workflows/deploy.yml`.
 
+### Using vitefolts as a library
+
+The proof engine is UI-free and depends only on `immutable`. Import the headless facade from `src/notation/engine.ts`:
+
+```ts
+import { proveConjecture } from './notation/engine';
+
+const result = proveConjecture(
+  ['forall x. MAN(x) -> MORTAL(x)', 'MAN(socrates)'],
+  'MORTAL(socrates)',
+);
+console.log(result.proved); // true
+```
+
+`proveConjecture(axioms, conjecture, options?)` parses each string through one shared symbol registry, runs the full clausal pipeline (eliminate → / ← / ↔, cancel ¬¬, push ¬ inward, Skolemize ∃, drop ∀, distribute ∨ over ∧), adds reflexivity when equality appears, and refutes `axioms ∧ ¬conjecture` by linear resolution with paramodulation. It returns `{ proved, proof, clauses, sosIndices }`. Use `proveTrees(axiomTrees, conjectureTree, options?)` to prove from programmatically built sentence trees instead of text. `options` accepts `maxDepth` and `maxAttempts`.
+
+Input syntax accepts ASCII aliases (`forall`, `exists`, `~`, `&`, `|`, `->`, `<-`, `<->`, and `*` for `·`). Names `u`–`z` are variables and other names are constants; a name in predicate position is a predicate, in term position a function.
+
+### Development
+
+```bash
+npm run typecheck   # tsc over src + tests
+npm test            # vitest: soundness + completeness + unit suites
+npm run build       # production build (dist/)
+```
+
+CI (`.github/workflows/ci.yml`) runs all three on every pull request.
+
 By following these steps, you can start exploring the capabilities of vitefolts and its unique approach to First Order Logic.
 
