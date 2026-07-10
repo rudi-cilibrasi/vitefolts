@@ -187,6 +187,7 @@ export function usedAxioms(result: TheoryResult): number[] {
 export { ParseError, Registry, parseSentence } from './parser';
 export { extractClauses } from './cnf';
 export type { Clause, Literal } from './cnf';
+export { sentenceToLatex } from './latex-printer';
 export { prove } from './resolution';
 export type { Proof, ProofStep, ProveOptions, ProverEnv } from './resolution';
 export type { SentenceTreeNode } from './sentence-tree-node';
