@@ -121,6 +121,8 @@ console.log(result.proved); // true
 
 Input syntax accepts ASCII aliases (`forall`, `exists`, `~`, `&`, `|`, `->`, `<-`, `<->`, and `*` for `·`). Names `u`–`z` are variables and other names are constants; a name in predicate position is a predicate, in term position a function.
 
+The engine (`src/notation/`) is self-contained — its only runtime dependency is `immutable` — and `npm run build:lib` emits it as an ESM bundle-consumable library with type declarations to `dist-lib/` (`dist-lib/engine.js`, `dist-lib/engine.d.ts`). This is the basis for extracting it as a standalone package (issue #17).
+
 ### Development
 
 ```bash
