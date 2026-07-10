@@ -97,19 +97,18 @@ function playTone(ac: AudioContext, freq: number, ms: number, role: string): voi
     const t = ac.currentTime;
 
     if (role === 'name') {
-        // Constants and predicates are soft percussive "drum" hits: a low sine
-        // with a quick pitch drop and fast decay, so distinct names (e.g. the
-        // L and R banks in wolf-goat-cabbage) read as two different beats and
-        // a run of crossings turns into a rhythm.
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, t);
-        osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq * 0.6), t + 0.12);
+        // Constants and predicates are tuned percussive hits (a mallet/tom):
+        // a constant pitch — no sweep, so the pitch is clear — with a punchy
+        // attack and a short decay. Distinct names read as different beats, so
+        // e.g. L and R in wolf-goat-cabbage are easy to tell apart.
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
         gain.gain.setValueAtTime(0.0001, t);
-        gain.gain.exponentialRampToValueAtTime(0.32, t + 0.006);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+        gain.gain.exponentialRampToValueAtTime(0.34, t + 0.005);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
         osc.connect(gain).connect(ac.destination);
         osc.start(t);
-        osc.stop(t + 0.2);
+        osc.stop(t + 0.26);
         return;
     }
 
