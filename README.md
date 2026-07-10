@@ -20,13 +20,14 @@ Then **prove a conjecture**: pick a conjecture φ and the engine refutes axioms 
 
 And **build your own theory**: the **Custom ✎** tab has a formula editor — axioms and conjectures, one per line, with optional `label:` prefixes and `#` comments. The parser accepts exactly what the app displays (so `✎ edit in editor` copies any built-in example in for tweaking, verified round-trip), and **no special keyboard is needed**: ASCII converts to symbols live as you type — `forall`→`∀`, `exists`→`∃`, `~`→`¬`, `&`→`∧`, `|`→`∨`, `->`→`→`, `<->`→`↔`, `*`→`·` — with an on-screen key legend, clickable symbol buttons, and paste conversion (comments after `#` are left alone). Symbol roles and arities are inferred from use — names applied in formula position are predicates, in term position functions; bare `u`–`z` or quantifier-bound names are variables, anything else is a constant. A typed-conjecture box next to the menu lets you pose your own question on any example.
 
-Four example theories are included, each chosen so a different pipeline step gets a dramatic moment:
+Six example theories are included, each chosen so a different pipeline step or inference feature gets a dramatic moment:
 
-- **Peano arithmetic** — the classic axioms, plus a `¬∃x.[NAT(x)]∧[succ(x)=0]` row that double-flips under De Morgan.
+- **Peano arithmetic** — the classic axioms, plus a `¬∃x.[NAT(x)]∧[succ(x)=0]` row that double-flips under De Morgan; with the successor-addition axiom it proves `1 + 1 = 2` by paramodulation.
 - **Group theory** — closure, associativity, identity, inverses; the "nontrivial" axiom `¬∀x.x=e` flips its quantifier into `∃x.¬(x=e)`.
 - **Socrates & the gods** — syllogisms where `¬∃x.¬MORTAL(x)` cancels a hidden double negation into `∀x.MORTAL(x)`.
 - **Wolf, goat & cabbage** — the classic river crossing as pure logic: only safe crossings are axioms, and proving `REACH(R,R,R,R)` yields an 8-step refutation that *is* the farmer's ferry plan.
 - **Safety interlock** — propositional rules whose biconditionals mint genuine `¬¬` pairs, giving the `¬¬` cancel step real work.
+- **Ancestry** — everyone has a parent (`∀x∃y.PARENT(y,x)`), so the `∃` under the `∀` Skolemizes to a real unary function `σ(x)` rather than a constant; prove everyone has an ancestor.
 
 ### Properties of vitefolts
 
