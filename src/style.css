@@ -692,8 +692,19 @@ footer a:hover {
     transition: background 60ms ease, box-shadow 60ms ease;
 }
 
-#btn-hear,
-#btn-hear-rev {
-    border-color: var(--accent-2);
+.hear-btn {
+    border: 1px solid var(--border);
+    background: var(--panel);
     color: var(--accent-2);
+    border-radius: 4px;
+    padding: 0 0.4rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    cursor: pointer;
+    align-self: center;
+    flex: 0 0 auto;
+}
+.hear-btn:hover {
+    border-color: var(--accent-2);
+    background: var(--panel-2);
 }
