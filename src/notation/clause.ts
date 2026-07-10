@@ -2,6 +2,7 @@ import { List } from "immutable";
 import { OperationType } from "./operation-type";
 import { S3F, SentenceTreeNode } from "./sentence-tree-node";
 import { has_node_type_in_set, inspect_sentence_node_types } from "./stn-inspector-types";
+import { ExpansionBudget, chargeExpansion, makeExpansionBudget } from "./expansion-guard";
 
 export function clausal_form_negations_in(sentence: SentenceTreeNode): SentenceTreeNode {
     const usedNodeTypes = inspect_sentence_node_types(sentence);
@@ -57,7 +58,8 @@ export function clausal_form_remove_double_negations(sentence: SentenceTreeNode)
     return S3F({ operation: sentence.operation, children, bound_vars: sentence.bound_vars });
 }
 
-export function clausal_form_iffs_out(sentence: SentenceTreeNode): SentenceTreeNode {
+export function clausal_form_iffs_out(sentence: SentenceTreeNode, budget: ExpansionBudget = makeExpansionBudget()): SentenceTreeNode {
+    chargeExpansion(budget);
     const usedNodeTypes = inspect_sentence_node_types(sentence);
     const has_it = has_node_type_in_set(usedNodeTypes, OperationType.IFF);
     if (!has_it) {
@@ -66,13 +68,13 @@ export function clausal_form_iffs_out(sentence: SentenceTreeNode): SentenceTreeN
     if (sentence.operation === OperationType.IFF) {
         const left = sentence.children.get(0);
         const right = sentence.children.get(1);
-        const left_clausal = clausal_form_iffs_out(left!);
-        const right_clausal = clausal_form_iffs_out(right!);
+        const left_clausal = clausal_form_iffs_out(left!, budget);
+        const right_clausal = clausal_form_iffs_out(right!, budget);
         const not_left = S3F({ operation: OperationType.NOT, children: List<SentenceTreeNode>().push(left_clausal), bound_vars: List() });
         const not_right = S3F({ operation: OperationType.NOT, children: List<SentenceTreeNode>().push(right_clausal), bound_vars: List() });
         return S3F({ operation: OperationType.AND, children: List<SentenceTreeNode>().push(S3F({ operation: OperationType.OR, children: List<SentenceTreeNode>().push(not_left).push(right_clausal), bound_vars: List() })).push(S3F({ operation: OperationType.OR, children: List<SentenceTreeNode>().push(left_clausal).push(not_right), bound_vars: List() })), bound_vars: List() });
     }
-    const children = sentence.children.map(clausal_form_iffs_out);
+    const children = sentence.children.map((c) => clausal_form_iffs_out(c, budget));
     return S3F({ operation: sentence.operation, children, bound_vars: sentence.bound_vars });
 }
 

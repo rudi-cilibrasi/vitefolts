@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const root = JSON.parse(readFileSync('package.json', 'utf8'));
 
 const pkg = {
-    name: 'folts-engine',
+    name: '@folts/core',
     version: root.version,
     description:
         'First-order logic engine: parse, clausal-form conversion, and linear resolution with paramodulation.',

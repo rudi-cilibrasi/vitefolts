@@ -9,12 +9,14 @@ import {
 import {
     Clause,
     StepContext,
+    assertClausalSizeWithin,
     clauseHasEquality,
     distribute_or_over_and,
     drop_foralls,
     extractClauses,
     skolemize,
 } from './cnf';
+import { makeExpansionBudget } from './expansion-guard';
 import { Registry, parseSentence } from './parser';
 import { Proof, ProveOptions, ProverEnv, prove } from './resolution';
 import { ScopedId, n2SI } from './scope';
@@ -62,15 +64,22 @@ export function makeProverEnv(): ProverEnv {
 // The ← (left-implication) step is included so a formula using `<-` reaches
 // CNF instead of surfacing a raw LIMP node at clause extraction.
 export function toClausalForm(sentence: SentenceTreeNode, ctx: StepContext): SentenceTreeNode {
+    // One shared budget across the two exponential steps (↔ elimination and
+    // ∨-over-∧ distribution) so an adversarial formula throws
+    // ClausalFormTooLargeError instead of exhausting memory.
+    const budget = makeExpansionBudget();
     let s = sentence;
     s = clausal_form_implications_out(s);
     s = clausal_form_limplications_out(s);
-    s = clausal_form_iffs_out(s);
+    s = clausal_form_iffs_out(s, budget);
+    // ↔ elimination produces a shared DAG; bail before the next step
+    // materializes it if its full form is astronomically large.
+    assertClausalSizeWithin(s);
     s = clausal_form_remove_double_negations(s);
     s = clausal_form_negations_in(s);
     s = skolemize(s, ctx);
     s = drop_foralls(s);
-    s = distribute_or_over_and(s);
+    s = distribute_or_over_and(s, budget);
     return s;
 }
 
@@ -185,6 +194,7 @@ export function usedAxioms(result: TheoryResult): number[] {
 }
 
 export { ParseError, Registry, parseSentence } from './parser';
+export { ClausalFormTooLargeError } from './expansion-guard';
 export { extractClauses } from './cnf';
 export type { Clause, Literal } from './cnf';
 export { sentenceToLatex } from './latex-printer';
