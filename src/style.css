@@ -682,3 +682,18 @@ footer a:hover {
         padding-top: 0;
     }
 }
+
+/* Sonification cursor: the symbol currently sounding (issue #48). */
+.sonify-on {
+    background: var(--accent-2);
+    color: var(--panel);
+    border-radius: 3px;
+    box-shadow: 0 0 0 2px var(--accent-2);
+    transition: background 60ms ease, box-shadow 60ms ease;
+}
+
+#btn-hear,
+#btn-hear-rev {
+    border-color: var(--accent-2);
+    color: var(--accent-2);
+}
