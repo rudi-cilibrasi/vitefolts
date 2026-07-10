@@ -217,14 +217,22 @@ export function setupApp(
         </section>
         <section class="pipeline" id="pipeline"></section>
         <section class="controls">
+            <button id="btn-back" type="button">◂ Back</button>
             <button id="btn-step" type="button">Step ▸</button>
             <button id="btn-play" type="button">Play all ▸▸</button>
             <button id="btn-reset" type="button">↺ Reset</button>
-            <label class="speed-label">speed
+            <label class="speed-label">animation
                 <select id="speed">
                     <option value="2">slow</option>
                     <option value="1" selected>normal</option>
                     <option value="0.5">fast</option>
+                </select>
+            </label>
+            <label class="speed-label">music
+                <select id="music-speed">
+                    <option value="1">slow</option>
+                    <option value="0.5" selected>normal</option>
+                    <option value="0.25">fast</option>
                 </select>
             </label>
             <span class="status" id="status"></span>
@@ -264,10 +272,12 @@ export function setupApp(
     const sentencesEl = root.querySelector<HTMLElement>('#sentences')!;
     const symtabEl = root.querySelector<HTMLElement>('#symtab')!;
     const statusEl = root.querySelector<HTMLElement>('#status')!;
+    const backBtn = root.querySelector<HTMLButtonElement>('#btn-back')!;
     const stepBtn = root.querySelector<HTMLButtonElement>('#btn-step')!;
     const playBtn = root.querySelector<HTMLButtonElement>('#btn-play')!;
     const resetBtn = root.querySelector<HTMLButtonElement>('#btn-reset')!;
     const speedSel = root.querySelector<HTMLSelectElement>('#speed')!;
+    const musicSel = root.querySelector<HTMLSelectElement>('#music-speed')!;
     const conjectureSel = root.querySelector<HTMLSelectElement>('#conjecture')!;
     const conjTypedInput = root.querySelector<HTMLInputElement>('#conj-typed')!;
     const proveBtn = root.querySelector<HTMLButtonElement>('#btn-prove')!;
@@ -338,6 +348,10 @@ export function setupApp(
 
     let exampleIndex = -1;
     let trees: SentenceTreeNode[] = [];
+    // Snapshot of `trees` at each stepIndex, so Back restores a previous state
+    // and a later Step reuses the cached next state (keeping Skolem symbols
+    // stable) instead of recomputing.
+    let stepHistory: SentenceTreeNode[][] = [];
     let rowGlyphEls: HTMLElement[] = [];
     let stepIndex = 0;
     let busy = false;
@@ -432,7 +446,7 @@ export function setupApp(
         let prev: HTMLElement | null = null;
         playMelody(melodyFrom(tokens), {
             direction,
-            noteMs: 260 * durationMult(),
+            noteMs: 260 * musicMult(),
             onStep: (idx) => {
                 if (prev !== null) prev.classList.remove('sonify-on');
                 const el = tokenEls[idx];
@@ -487,6 +501,7 @@ export function setupApp(
         });
         doneChip.classList.toggle('current', stepIndex >= steps.length);
         const finished = stepIndex >= steps.length;
+        backBtn.disabled = busy || stepIndex === 0;
         stepBtn.disabled = busy || finished;
         playBtn.disabled = busy || finished;
         resetBtn.disabled = busy;
@@ -510,6 +525,7 @@ export function setupApp(
         skolemCounter = 0;
         freshVarCounter = 0;
         trees = ex.axioms.map((a) => a.tree);
+        stepHistory = [trees];
         stepIndex = 0;
         statusEl.textContent = '';
         hintEl.textContent = ex.hint;
@@ -591,13 +607,20 @@ export function setupApp(
         return parseFloat(speedSel.value);
     }
 
+    function musicMult(): number {
+        return parseFloat(musicSel.value);
+    }
+
     async function doStep(): Promise<void> {
         if (busy || stepIndex >= steps.length) return;
         busy = true;
         const step = steps[stepIndex];
         statusEl.textContent = step.detail;
         updateChrome();
-        const newTrees = trees.map((t) => step.transform(t, ctx));
+        // Reuse the cached next state if we're re-stepping forward after Back
+        // (so Skolem functions aren't minted again); otherwise compute it.
+        const newTrees = stepHistory[stepIndex + 1] ?? trees.map((t) => step.transform(t, ctx));
+        stepHistory[stepIndex + 1] = newTrees;
         const newInners = newTrees.map((t) => mmlSentence(t, workingSt));
         const oldInners = trees.map((t) => mmlSentence(t, workingSt));
         const anyChange = newInners.some((t, k) => t !== oldInners[k]);
@@ -618,6 +641,28 @@ export function setupApp(
         }
     }
 
+    async function doStepBack(): Promise<void> {
+        if (busy || stepIndex === 0) return;
+        busy = true;
+        const prevTrees = stepHistory[stepIndex - 1];
+        statusEl.textContent = `↩ ${steps[stepIndex - 1].label}`;
+        updateChrome();
+        const prevInners = prevTrees.map((t) => mmlSentence(t, workingSt));
+        const curInners = trees.map((t) => mmlSentence(t, workingSt));
+        const anyChange = prevInners.some((t, k) => t !== curInners[k]);
+        if (anyChange) {
+            const duration = BASE_DURATION_MS * durationMult();
+            await Promise.all(rowGlyphEls.map((el, k) => animateMath(el, prevInners[k], duration)));
+        } else {
+            await sleep(300 * durationMult());
+        }
+        trees = prevTrees;
+        stepIndex--;
+        refreshSymtab();
+        busy = false;
+        updateChrome();
+    }
+
     async function playAll(): Promise<void> {
         const mySession = session;
         while (stepIndex < steps.length && !busy && session === mySession) {
@@ -634,6 +679,7 @@ export function setupApp(
         skolemCounter = 0;
         freshVarCounter = 0;
         trees = ex.axioms.map((a) => a.tree);
+        stepHistory = [trees];
         stepIndex = 0;
         statusEl.textContent = '';
         refreshSymtab();
@@ -828,6 +874,7 @@ export function setupApp(
         }
     }
 
+    backBtn.addEventListener('click', () => { void doStepBack(); });
     stepBtn.addEventListener('click', () => { void doStep(); });
     playBtn.addEventListener('click', () => { void playAll(); });
     resetBtn.addEventListener('click', reset);
