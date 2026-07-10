@@ -22,6 +22,34 @@ export function stopMelody(): void {
     activeToken++;
 }
 
+// The audio device takes a moment to actually start producing sound after it
+// is first resumed, so notes scheduled immediately after the very first press
+// get clipped. Warm it up once — resume, prime with an inaudible tick, and
+// wait — so the first press pauses ~1s and every later press plays instantly.
+const WARMUP_MS = 1000;
+let warmup: Promise<void> | null = null;
+
+function ensureWarm(ac: AudioContext | null): Promise<void> {
+    if (warmup !== null) return warmup;
+    warmup = (async () => {
+        if (ac === null) return;
+        try {
+            await ac.resume();
+        } catch { /* ignore */ }
+        try {
+            const gain = ac.createGain();
+            gain.gain.value = 0.0001; // inaudible priming tone
+            const osc = ac.createOscillator();
+            osc.frequency.value = 220;
+            osc.connect(gain).connect(ac.destination);
+            osc.start();
+            osc.stop(ac.currentTime + 0.05);
+        } catch { /* ignore */ }
+        await new Promise<void>((resolve) => setTimeout(resolve, WARMUP_MS));
+    })();
+    return warmup;
+}
+
 export interface PlayOptions {
     direction?: 'forward' | 'reverse';
     noteMs?: number;
@@ -51,20 +79,42 @@ export function playMelody(events: NoteEvent[], opts: PlayOptions = {}): void {
         const event = events[idx];
         opts.onStep?.(idx, event);
         if (event.kind === 'note' && ac !== null) {
-            playTone(ac, event.freq, noteMs);
+            playTone(ac, event.freq, noteMs, event.role);
         }
         step++;
         setTimeout(tick, noteMs);
     };
-    tick();
+    // The first press waits for the one-time device warm-up; later presses
+    // find it already resolved and start immediately.
+    void ensureWarm(ac).then(() => {
+        if (token === activeToken) tick();
+    });
 }
 
-function playTone(ac: AudioContext, freq: number, ms: number): void {
+function playTone(ac: AudioContext, freq: number, ms: number, role: string): void {
     const osc = ac.createOscillator();
     const gain = ac.createGain();
+    const t = ac.currentTime;
+
+    if (role === 'name') {
+        // Constants and predicates are soft percussive "drum" hits: a low sine
+        // with a quick pitch drop and fast decay, so distinct names (e.g. the
+        // L and R banks in wolf-goat-cabbage) read as two different beats and
+        // a run of crossings turns into a rhythm.
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t);
+        osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq * 0.6), t + 0.12);
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.32, t + 0.006);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+        osc.connect(gain).connect(ac.destination);
+        osc.start(t);
+        osc.stop(t + 0.2);
+        return;
+    }
+
     osc.type = 'triangle';
     osc.frequency.value = freq;
-    const t = ac.currentTime;
     const dur = ms / 1000;
     // Short attack/decay so notes are plucky, not droning.
     gain.gain.setValueAtTime(0.0001, t);

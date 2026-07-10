@@ -33,14 +33,18 @@ describe('note mapping is consistent and structural', () => {
         }
     });
 
-    it('gives all predicate/function names one shared pitch', () => {
-        const a = noteFor(t('mi', 'MORTAL'));
-        const b = noteFor(t('mi', 'GOD'));
-        expect(a.kind).toBe('note');
-        expect(b.kind).toBe('note');
-        if (a.kind === 'note' && b.kind === 'note') {
-            expect(a.freq).toBe(b.freq); // same pitch; only the glyph differs
+    it('gives distinct names distinct pitches (so L and R are different beats)', () => {
+        const l = noteFor(t('mi', 'L'));
+        const r = noteFor(t('mi', 'R'));
+        expect(l.kind).toBe('note');
+        expect(r.kind).toBe('note');
+        if (l.kind === 'note' && r.kind === 'note') {
+            expect(l.freq).not.toBe(r.freq);
         }
+    });
+
+    it('maps a name deterministically to the same pitch every time', () => {
+        expect(noteFor(t('mi', 'REACH'))).toEqual(noteFor(t('mi', 'REACH')));
     });
 
     it('renders commas as rests', () => {

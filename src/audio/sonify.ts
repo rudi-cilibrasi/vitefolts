@@ -52,11 +52,20 @@ const VARIABLE_SEMITONES: Record<string, number> = {
     u: 19, v: 21, w: 23, x: 24, y: 26, z: 28,
 };
 
-// Predicates and functions share one steady lower note — the ear tracks
-// structure, not which name.
-const NAME_SEMITONES = -5; // G3
+// Constants and predicates each get their own low, drum-like pitch, hashed
+// from the name — so distinct names (e.g. the L and R banks in
+// wolf-goat-cabbage) are two different beats, and a run of crossings becomes
+// a rhythm. Low pentatonic (G2 A2 C3 D3 E3), so they stay consonant.
+const NAME_SCALE = [-17, -15, -12, -10, -8];
+function nameSemitones(glyph: string): number {
+    let h = 0;
+    for (let i = 0; i < glyph.length; i++) {
+        h += glyph.charCodeAt(i);
+    }
+    return NAME_SCALE[h % NAME_SCALE.length]!;
+}
 const NUMBER_SEMITONES = -3; // A3
-const PAREN_SEMITONES = -12; // C3, a soft low blip
+const PAREN_SEMITONES = -20; // a soft low blip, below the name drums
 
 function isVariableGlyph(text: string): boolean {
     return /^[u-z]$/.test(text);
@@ -89,7 +98,7 @@ export function noteFor(token: Token): NoteEvent {
         case 'variable':
             return { kind: 'note', role, glyph, freq: freqFromSemitones(VARIABLE_SEMITONES[glyph]!) };
         case 'name':
-            return { kind: 'note', role, glyph, freq: freqFromSemitones(NAME_SEMITONES) };
+            return { kind: 'note', role, glyph, freq: freqFromSemitones(nameSemitones(glyph)) };
         case 'number':
             return { kind: 'note', role, glyph, freq: freqFromSemitones(NUMBER_SEMITONES) };
         case 'paren':
