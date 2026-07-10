@@ -66,6 +66,23 @@ describe('theorems the prover must find', () => {
     });
 });
 
+describe('reverse implication (←) is eliminated, not crashed', () => {
+    // A ← B is B → A. The clausal pipeline must eliminate LIMP; before the
+    // fix a `<-` reached clause extraction and threw.
+    it('proves P from (P ← Q) and Q', () => {
+        expect(proveConjecture(['P <- Q', 'Q'], 'P').proved).toBe(true);
+    });
+
+    it('treats A ← B as equivalent to B → A (does not prove the converse)', () => {
+        expect(proveConjecture(['P <- Q', 'P'], 'Q', { maxDepth: 6 }).proved).toBe(false);
+    });
+
+    it('handles a ← conjecture', () => {
+        // Prove Q → P, written R(a) ← ... — use a quantified form.
+        expect(proveConjecture(['forall x. BIG(x) <- HUGE(x)', 'HUGE(mars)'], 'BIG(mars)').proved).toBe(true);
+    });
+});
+
 describe('non-theorems the prover must reject (bounded search)', () => {
     it('does not prove Socrates is a god', () => {
         expect(proveConjecture(SOCRATES, 'GOD(socrates)', { maxDepth: 8 }).proved).toBe(false);
