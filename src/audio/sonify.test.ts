@@ -47,6 +47,29 @@ describe('note mapping is consistent and structural', () => {
         expect(noteFor(t('mo', ',')).kind).toBe('rest');
     });
 
+    const freq = (glyph: string): number => {
+        const e = noteFor(t('mo', glyph));
+        if (e.kind !== 'note') throw new Error(`${glyph} is a rest`);
+        return e.freq;
+    };
+
+    it('sounds De Morgan / converse duals as inversions around the tonic', () => {
+        const tonic = freq('↔'); // the axis
+        // A dual pair mirrors around the tonic, so freq(a)·freq(b) = tonic².
+        for (const [a, b] of [['∀', '∃'], ['∧', '∨'], ['→', '←']]) {
+            expect(freq(a) * freq(b)).toBeCloseTo(tonic * tonic, 3);
+        }
+    });
+
+    it('makes ¬ harmonic with ∧, ∨, and ↔ (octave of the tonic axis)', () => {
+        // ¬ is the octave above ↔ (the reflection axis) — a perfect fourth
+        // above ∧ and a perfect fifth above ∨ (mod octave): all consonant.
+        expect(freq('¬')).toBeCloseTo(2 * freq('↔'), 3);
+        const ratioMod = (x: number, y: number) => { let r = x / y; while (r >= 2) r /= 2; return r; };
+        expect(ratioMod(freq('¬'), freq('∧'))).toBeCloseTo(4 / 3, 2); // perfect fourth
+        expect(ratioMod(freq('¬'), freq('∨'))).toBeCloseTo(3 / 2, 2); // perfect fifth
+    });
+
     it('produces a melody event per token', () => {
         const melody = melodyFrom([t('mo', '∀'), t('mi', 'x'), t('mo', '.'), t('mi', 'MAN'), t('mo', '→'), t('mi', 'MORTAL')]);
         expect(melody).toHaveLength(6);
