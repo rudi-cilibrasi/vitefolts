@@ -8,6 +8,7 @@ import { ParseError, Registry, parseSentence } from './notation/parser';
 import { Proof, ProverEnv, SideRef, prove } from './notation/resolution';
 import { proofInputIndices } from './notation/engine';
 import { sentenceToLatex } from './notation/latex-printer';
+import { decodeTheory, encodeTheory } from './permalink';
 import { n2SI, ScopedId } from './notation/scope';
 import { SentenceTreeNode } from './notation/sentence-tree-node';
 import { SymbolTable } from './notation/symbol-table';
@@ -481,11 +482,40 @@ export function setupApp(
             .join('\n');
     }
 
+    const THEORY_STORAGE_KEY = 'folts.theory';
+
+    // Persist the current custom theory to the URL hash (shareable) and
+    // localStorage (survives reload), so a hand-built theory isn't lost.
+    function savePermalink(): void {
+        const encoded = encodeTheory(axInput.value, conjInput.value);
+        try {
+            history.replaceState(null, '', `#t=${encoded}`);
+        } catch { /* history unavailable — ignore */ }
+        try {
+            localStorage.setItem(THEORY_STORAGE_KEY, encoded);
+        } catch { /* storage blocked — ignore */ }
+    }
+
+    // A restorable custom theory from the URL hash first, then localStorage.
+    function storedTheory(): { axioms: string; conjectures: string } | null {
+        const hashMatch = /[#&]t=([^&]+)/.exec(window.location.hash);
+        if (hashMatch !== null) {
+            const fromHash = decodeTheory(hashMatch[1]);
+            if (fromHash !== null) return fromHash;
+        }
+        try {
+            const saved = localStorage.getItem(THEORY_STORAGE_KEY);
+            if (saved !== null) return decodeTheory(saved);
+        } catch { /* storage blocked — ignore */ }
+        return null;
+    }
+
     function applyEditor(): void {
         if (busy) return;
         try {
             allExamples[customIndex] = parseTheory(axInput.value, conjInput.value);
             editorErrEl.textContent = '';
+            savePermalink();
             loadExample(customIndex, true);
         } catch (err) {
             if (exampleIndex !== customIndex) {
@@ -755,5 +785,21 @@ export function setupApp(
         if (ev.key === 'Enter') void doProve();
     });
 
-    loadExample(0);
+    const restored = storedTheory();
+    let restoredOk = false;
+    if (restored !== null) {
+        try {
+            allExamples[customIndex] = parseTheory(restored.axioms, restored.conjectures);
+            axInput.value = restored.axioms;
+            conjInput.value = restored.conjectures;
+            savePermalink();
+            loadExample(customIndex, true);
+            restoredOk = true;
+        } catch {
+            // Corrupt or invalid stored theory — ignore it and show the default.
+        }
+    }
+    if (!restoredOk) {
+        loadExample(0);
+    }
 }
