@@ -220,8 +220,6 @@ export function setupApp(
             <button id="btn-step" type="button">Step ▸</button>
             <button id="btn-play" type="button">Play all ▸▸</button>
             <button id="btn-reset" type="button">↺ Reset</button>
-            <button id="btn-hear" type="button" title="Play the current formula as a melody — each symbol is a note (left → right)">♪ Hear ▶</button>
-            <button id="btn-hear-rev" type="button" title="Play the melody in reverse (right → left)">◀ ♪</button>
             <label class="speed-label">speed
                 <select id="speed">
                     <option value="2">slow</option>
@@ -269,8 +267,6 @@ export function setupApp(
     const stepBtn = root.querySelector<HTMLButtonElement>('#btn-step')!;
     const playBtn = root.querySelector<HTMLButtonElement>('#btn-play')!;
     const resetBtn = root.querySelector<HTMLButtonElement>('#btn-reset')!;
-    const hearBtn = root.querySelector<HTMLButtonElement>('#btn-hear')!;
-    const hearRevBtn = root.querySelector<HTMLButtonElement>('#btn-hear-rev')!;
     const speedSel = root.querySelector<HTMLSelectElement>('#speed')!;
     const conjectureSel = root.querySelector<HTMLSelectElement>('#conjecture')!;
     const conjTypedInput = root.querySelector<HTMLInputElement>('#conj-typed')!;
@@ -388,11 +384,57 @@ export function setupApp(
             label.textContent = axiom.note;
             const glyphs = document.createElement('div');
             glyphs.className = 'glyphs';
+
+            // A play button at each end of the formula: ▶ sweeps left→right,
+            // ◀ sweeps right→left, sonifying just this line (issue #48).
+            const playFwd = document.createElement('button');
+            playFwd.type = 'button';
+            playFwd.className = 'hear-btn';
+            playFwd.textContent = '▶';
+            playFwd.title = 'Hear this formula — left → right';
+            playFwd.addEventListener('click', () => hearContainer(glyphs, 'forward'));
+
+            const playRev = document.createElement('button');
+            playRev.type = 'button';
+            playRev.className = 'hear-btn';
+            playRev.textContent = '◀';
+            playRev.title = 'Hear this formula — right → left';
+            playRev.addEventListener('click', () => hearContainer(glyphs, 'reverse'));
+
             row.appendChild(label);
+            row.appendChild(playFwd);
             row.appendChild(glyphs);
+            row.appendChild(playRev);
             sentencesEl.appendChild(row);
             rowGlyphEls.push(glyphs);
         }
+    }
+
+    // Sonify one formula: each rendered MathML token becomes a note, swept in
+    // the given direction, highlighting the symbol as it sounds. The same
+    // symbol→note map every time, so a transform step is audible as a change
+    // in melody.
+    function hearContainer(container: HTMLElement, direction: 'forward' | 'reverse'): void {
+        stopMelody();
+        const tokenEls = Array.from(container.querySelectorAll<HTMLElement>('mi, mo, mn'));
+        for (const el of tokenEls) el.classList.remove('sonify-on');
+        if (tokenEls.length === 0) return;
+        const tokens: Token[] = tokenEls.map((el) => ({
+            tag: el.tagName.toLowerCase() as Token['tag'],
+            text: el.textContent ?? '',
+        }));
+        let prev: HTMLElement | null = null;
+        playMelody(melodyFrom(tokens), {
+            direction,
+            noteMs: 260 * durationMult(),
+            onStep: (idx) => {
+                if (prev !== null) prev.classList.remove('sonify-on');
+                const el = tokenEls[idx];
+                el.classList.add('sonify-on');
+                prev = el;
+            },
+            onDone: () => { if (prev !== null) prev.classList.remove('sonify-on'); },
+        });
     }
 
     function renderAll(): void {
@@ -780,38 +822,9 @@ export function setupApp(
         }
     }
 
-    // Sonify the formula currently shown in the pipeline: each rendered MathML
-    // token becomes a note, swept left→right or right→left, highlighting the
-    // symbol as it sounds. Same symbol→note map every time, so a transform
-    // step is audible as a change in melody. (Issue #48.)
-    function hearFormula(direction: 'forward' | 'reverse'): void {
-        stopMelody();
-        const tokenEls = Array.from(pipelineEl.querySelectorAll<HTMLElement>('mi, mo, mn'));
-        for (const el of tokenEls) el.classList.remove('sonify-on');
-        if (tokenEls.length === 0) return;
-        const tokens: Token[] = tokenEls.map((el) => ({
-            tag: el.tagName.toLowerCase() as Token['tag'],
-            text: el.textContent ?? '',
-        }));
-        let prev: HTMLElement | null = null;
-        playMelody(melodyFrom(tokens), {
-            direction,
-            noteMs: 260 * durationMult(),
-            onStep: (idx) => {
-                if (prev !== null) prev.classList.remove('sonify-on');
-                const el = tokenEls[idx];
-                el.classList.add('sonify-on');
-                prev = el;
-            },
-            onDone: () => { if (prev !== null) prev.classList.remove('sonify-on'); },
-        });
-    }
-
     stepBtn.addEventListener('click', () => { void doStep(); });
     playBtn.addEventListener('click', () => { void playAll(); });
     resetBtn.addEventListener('click', reset);
-    hearBtn.addEventListener('click', () => hearFormula('forward'));
-    hearRevBtn.addEventListener('click', () => hearFormula('reverse'));
     proveBtn.addEventListener('click', () => { void doProve(); });
     latexBtn.addEventListener('click', () => { void copyLatex(); });
     applyBtn.addEventListener('click', applyEditor);
