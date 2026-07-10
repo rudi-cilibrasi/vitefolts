@@ -692,17 +692,32 @@ footer a:hover {
     transition: background 60ms ease, box-shadow 60ms ease;
 }
 
+.formula-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.formula-row .glyphs {
+    flex: 1 1 auto;
+}
+
 .hear-btn {
+    flex: 0 0 auto;
+    width: 1.6rem;
+    height: 1.6rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: 1px solid var(--border);
     background: var(--panel);
     color: var(--accent-2);
     border-radius: 4px;
-    padding: 0 0.4rem;
-    font-size: 0.8rem;
-    line-height: 1.4;
+    padding: 0;
+    font-size: 0.7rem;
+    line-height: 1;
     cursor: pointer;
-    align-self: center;
-    flex: 0 0 auto;
 }
 .hear-btn:hover {
     border-color: var(--accent-2);
