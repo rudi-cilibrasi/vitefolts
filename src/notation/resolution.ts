@@ -70,8 +70,15 @@ function substClause(clause: Clause, subst: Subst): Clause {
 }
 
 function isTautology(clause: Clause): boolean {
-    return clause.literals.some((l) =>
-        l.positive && clause.literals.some((m) => !m.positive && m.atom.equals(l.atom)));
+    return clause.literals.some((l) => {
+        // A positive t = t literal is always true, so the whole clause is.
+        if (l.positive && l.atom.operation === OperationType.EQUALS
+            && l.atom.children.get(0)!.equals(l.atom.children.get(1)!)) {
+            return true;
+        }
+        // Complementary literals p and ¬p on the same atom.
+        return l.positive && clause.literals.some((m) => !m.positive && m.atom.equals(l.atom));
+    });
 }
 
 function clauseSize(clause: Clause): number {

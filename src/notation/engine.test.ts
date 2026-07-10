@@ -64,6 +64,14 @@ describe('theorems the prover must find', () => {
         const result = proveConjecture(PEANO_ARITH, 'succ(0) + succ(0) = succ(succ(0))', { maxDepth: 10 });
         expect(result.proved).toBe(true);
     });
+
+    it('proves a = a via reflexivity, with no axioms', () => {
+        expect(proveConjecture([], 'a = a').proved).toBe(true);
+    });
+
+    it('proves symmetry of equality: c = b from b = c', () => {
+        expect(proveConjecture(['b = c'], 'c = b', { maxDepth: 6 }).proved).toBe(true);
+    });
 });
 
 describe('reverse implication (←) is eliminated, not crashed', () => {
