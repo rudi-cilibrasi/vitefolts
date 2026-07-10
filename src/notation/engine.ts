@@ -79,12 +79,21 @@ export function sentenceToClauses(sentence: SentenceTreeNode, ctx: StepContext):
     return extractClauses(toClausalForm(sentence, ctx));
 }
 
+// Where each input clause came from — so a proof can be traced back to the
+// axioms it actually used.
+export type ClauseSource =
+    | { kind: 'axiom'; index: number }
+    | { kind: 'conjecture' }
+    | { kind: 'reflexivity' };
+
 export interface TheoryResult {
     proved: boolean;
     proof: Proof | null;
     // Every input clause handed to the prover, axioms first then the negated
     // conjecture, in order — useful for rendering or debugging a run.
     clauses: Clause[];
+    // Provenance of each clause in `clauses`, same order.
+    sources: ClauseSource[];
     // Indices into `clauses` of the negated-conjecture clauses (the set of
     // support the search starts from).
     sosIndices: number[];
@@ -119,16 +128,19 @@ export function proveTrees(
     const env = makeProverEnv();
 
     const clauses: Clause[] = [];
-    for (const tree of axiomTrees) {
+    const sources: ClauseSource[] = [];
+    axiomTrees.forEach((tree, index) => {
         for (const clause of sentenceToClauses(tree, ctx)) {
             clauses.push(clause);
+            sources.push({ kind: 'axiom', index });
         }
-    }
+    });
 
     const sosIndices: number[] = [];
     for (const clause of sentenceToClauses(not(conjectureTree), ctx)) {
         sosIndices.push(clauses.length);
         clauses.push(clause);
+        sources.push({ kind: 'conjecture' });
     }
 
     // Paramodulation rewrites a goal down to t = t but needs a positive
@@ -138,10 +150,38 @@ export function proveTrees(
     if (clauses.some(clauseHasEquality)) {
         const reflVar = n2SI(1, 0);
         clauses.push({ literals: [{ positive: true, atom: eq(varr(reflVar), varr(reflVar)) }] });
+        sources.push({ kind: 'reflexivity' });
     }
 
     const proof = prove(clauses, sosIndices, env, options);
-    return { proved: proof !== null, proof, clauses, sosIndices };
+    return { proved: proof !== null, proof, clauses, sources, sosIndices };
+}
+
+// The input clauses (indices into TheoryResult.clauses) a proof actually used
+// — its unsat core. Linear resolution keeps every used input reachable as a
+// direct `input` side reference, plus the clause the chain starts from.
+export function proofInputIndices(proof: Proof): number[] {
+    const used = new Set<number>([proof.startIndex]);
+    for (const step of proof.steps) {
+        if (step.sideRef !== null && step.sideRef.kind === 'input') {
+            used.add(step.sideRef.index);
+        }
+    }
+    return [...used].sort((a, b) => a - b);
+}
+
+// The axiom indices (into the original axioms array) a proof relied on — the
+// answer to "which of my axioms did this actually need?".
+export function usedAxioms(result: TheoryResult): number[] {
+    if (result.proof === null) return [];
+    const axioms = new Set<number>();
+    for (const i of proofInputIndices(result.proof)) {
+        const source = result.sources[i];
+        if (source !== undefined && source.kind === 'axiom') {
+            axioms.add(source.index);
+        }
+    }
+    return [...axioms].sort((a, b) => a - b);
 }
 
 export { ParseError, Registry, parseSentence } from './parser';
