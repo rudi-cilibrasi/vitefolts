@@ -4,6 +4,7 @@ import { setupApp, PipelineStep, ExampleUI } from './ui.ts';
 import {
     clausal_form_iffs_out,
     clausal_form_implications_out,
+    clausal_form_limplications_out,
     clausal_form_negations_in,
     clausal_form_remove_double_negations,
 } from './notation/clause.ts';
@@ -14,6 +15,11 @@ const steps: PipelineStep[] = [
         label: '→ out',
         detail: 'Eliminate implications: A → B rewrites to (¬A)∨(B).',
         transform: (s) => clausal_form_implications_out(s),
+    },
+    {
+        label: '← out',
+        detail: 'Eliminate reverse implications: A ← B rewrites to (A)∨(¬B).',
+        transform: (s) => clausal_form_limplications_out(s),
     },
     {
         label: '↔ out',
