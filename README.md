@@ -122,7 +122,14 @@ console.log(result.proved); // true
 
 Input syntax accepts ASCII aliases (`forall`, `exists`, `~`, `&`, `|`, `->`, `<-`, `<->`, and `*` for `·`). Names `u`–`z` are variables and other names are constants; a name in predicate position is a predicate, in term position a function.
 
-The engine (`src/notation/`) is self-contained — its only runtime dependency is `immutable` — and `npm run build:lib` emits it as an ESM bundle-consumable library with type declarations to `dist-lib/` (`dist-lib/engine.js`, `dist-lib/engine.d.ts`). This is the basis for extracting it as a standalone package (issue #17).
+The engine (`src/notation/`) is self-contained — its only runtime dependency is `immutable` — and `npm run build:lib` emits it as a standalone, publishable ESM package to `dist-lib/`: type declarations (`engine.d.ts`), compiled modules (`engine.js` the entry), and a generated `dist-lib/package.json` declaring `folts-engine` with the right `exports`, `types`, and `immutable` dependency. To publish it (issue #17):
+
+```bash
+npm run build:lib
+cd dist-lib && npm publish   # requires `npm login`
+```
+
+The main repo package stays private; only `dist-lib/` is the published artifact.
 
 ### Development
 
