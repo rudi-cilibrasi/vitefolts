@@ -39,6 +39,7 @@ export function buildPeanoAxioms(): AxiomSet {
     truthBag = truthBag.add_function(succ, "succ", 1, false);
     truthBag = truthBag.add_function(PLUS, "+", 2, true);
     truthBag = truthBag.add_definition("1", succ_zero);
+    truthBag = truthBag.add_definition("2", S3(OperationType.FUNCTIONCALL, List([succ_zero]), List([succ])));
 
     const x = S3(OperationType.VARIABLE_INSTANCE, List(), List([x_id]));
     const y = S3(OperationType.VARIABLE_INSTANCE, List(), List([y_id]));
@@ -120,7 +121,22 @@ export function buildPeanoAxioms(): AxiomSet {
     const forall_x__x_plus_zero_eq_x = S3(OperationType.FORALL, List([x_plus_zero_eq_x]), List([x_id]));
     addAxiom(forall_x__x_plus_zero_eq_x, "additive identity");
 
+    // x + succ(y) = succ(x + y) — the recursion that makes addition compute.
+    // Without it, x + 0 = x alone cannot reach 1 + 1 = 2 (issue #15).
+    const x_plus_y = S3(OperationType.FUNCTIONCALL, List([x, y]), List([PLUS]));
+    const x_plus_succ_y = S3(OperationType.FUNCTIONCALL, List([x, succ_y]), List([PLUS]));
+    const succ_of_x_plus_y = S3(OperationType.FUNCTIONCALL, List([x_plus_y]), List([succ]));
+    const addition_recursion = S3(OperationType.EQUALS, List([x_plus_succ_y, succ_of_x_plus_y]), List([]));
+    const forall_xy__addition_recursion = S3(OperationType.FORALL, List([addition_recursion]), List([x_id, y_id]));
+    addAxiom(forall_xy__addition_recursion, "addition recursion");
+
+    // 1 + 1 = 2, i.e. succ(0) + succ(0) = succ(succ(0)).
+    const two = S3(OperationType.FUNCTIONCALL, List([succ_zero]), List([succ]));
+    const one_plus_one = S3(OperationType.FUNCTIONCALL, List([succ_zero, succ_zero]), List([PLUS]));
+    const one_plus_one_eq_two = S3(OperationType.EQUALS, List([one_plus_one, two]), List([]));
+
     const conjectures: Conjecture[] = [
+        { tree: one_plus_one_eq_two, remark: '1 + 1 = 2 — needs the addition-recursion axiom' },
         { tree: exists([x_id], pred(nat_id, fn(succ, varr(x_id)))) },
         { tree: pred(nat_id, fn(PLUS, zero, zero)), remark: 'needs paramodulation' },
         { tree: pred(nat_id, succ_zero), remark: '1 is defined as succ(0)' },
