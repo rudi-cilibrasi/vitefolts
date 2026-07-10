@@ -7,6 +7,7 @@ import { Clause, StepContext, clauseHasEquality, extractClauses } from './notati
 import { ParseError, Registry, parseSentence } from './notation/parser';
 import { Proof, ProverEnv, SideRef, prove } from './notation/resolution';
 import { proofInputIndices } from './notation/engine';
+import { sentenceToLatex } from './notation/latex-printer';
 import { n2SI, ScopedId } from './notation/scope';
 import { SentenceTreeNode } from './notation/sentence-tree-node';
 import { SymbolTable } from './notation/symbol-table';
@@ -238,6 +239,7 @@ export function setupApp(
                     placeholder="… or type your own, e.g. exists x. MORTAL(x)"
                     title="ASCII converts as you type: forall→∀ exists→∃ ~→¬ &→∧ |→∨ ->→→ <->→↔ *→·" />
                 <button id="btn-prove" type="button">Prove ▸</button>
+                <button id="btn-latex" type="button" title="Copy the current theory's axioms and conjectures as LaTeX">Copy LaTeX ⧉</button>
             </div>
             ${keyLegendHtml('Typing here converts ASCII to symbols:')}
             <div class="clauses" id="clauses"></div>
@@ -266,6 +268,7 @@ export function setupApp(
     const conjectureSel = root.querySelector<HTMLSelectElement>('#conjecture')!;
     const conjTypedInput = root.querySelector<HTMLInputElement>('#conj-typed')!;
     const proveBtn = root.querySelector<HTMLButtonElement>('#btn-prove')!;
+    const latexBtn = root.querySelector<HTMLButtonElement>('#btn-latex')!;
     const clausesEl = root.querySelector<HTMLElement>('#clauses')!;
     const proofEl = root.querySelector<HTMLElement>('#proof')!;
     const verdictEl = root.querySelector<HTMLElement>('#verdict')!;
@@ -721,10 +724,31 @@ export function setupApp(
         }
     }
 
+    function theoryToLatex(ex: ExampleUI): string {
+        const line = (tree: SentenceTreeNode) => `  ${sentenceToLatex(tree, ex.symbolTable)} \\\\`;
+        const axioms = ex.axioms.map((a) => line(a.tree)).join('\n');
+        const conjectures = ex.conjectures.map((c) => line(c.tree)).join('\n');
+        return `% Axioms\n\\begin{align*}\n${axioms}\n\\end{align*}\n% Conjectures\n\\begin{align*}\n${conjectures}\n\\end{align*}`;
+    }
+
+    async function copyLatex(): Promise<void> {
+        const tex = theoryToLatex(current());
+        const restore = latexBtn.textContent;
+        try {
+            await navigator.clipboard.writeText(tex);
+            latexBtn.textContent = 'Copied ✓';
+            setTimeout(() => { latexBtn.textContent = restore; }, 1200);
+        } catch {
+            // Clipboard unavailable (e.g. insecure context) — show it for manual copy.
+            window.prompt('Copy the LaTeX:', tex);
+        }
+    }
+
     stepBtn.addEventListener('click', () => { void doStep(); });
     playBtn.addEventListener('click', () => { void playAll(); });
     resetBtn.addEventListener('click', reset);
     proveBtn.addEventListener('click', () => { void doProve(); });
+    latexBtn.addEventListener('click', () => { void copyLatex(); });
     applyBtn.addEventListener('click', applyEditor);
     editBtn.addEventListener('click', editCurrentExample);
     conjTypedInput.addEventListener('keydown', (ev) => {
