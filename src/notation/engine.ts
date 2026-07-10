@@ -99,21 +99,34 @@ export function proveConjecture(
     conjecture: string,
     options?: ProveOptions,
 ): TheoryResult {
+    // One shared registry so a predicate or function of the same name is the
+    // same symbol across every sentence — without it, complementary literals
+    // from different sentences would never unify.
     const registry = new Registry();
+    const axiomTrees = axioms.map((axiom) => parseSentence(axiom, registry));
+    const conjectureTree = parseSentence(conjecture, registry);
+    return proveTrees(axiomTrees, conjectureTree, options);
+}
+
+// Prove a conjecture given axioms as already-built sentence trees (e.g. from
+// the programmatic example builders). Refutes axioms ∧ ¬conjecture.
+export function proveTrees(
+    axiomTrees: SentenceTreeNode[],
+    conjectureTree: SentenceTreeNode,
+    options?: ProveOptions,
+): TheoryResult {
     const ctx = makeStepContext();
     const env = makeProverEnv();
 
     const clauses: Clause[] = [];
-    for (const axiom of axioms) {
-        const parsed = parseSentence(axiom, registry);
-        for (const clause of sentenceToClauses(parsed, ctx)) {
+    for (const tree of axiomTrees) {
+        for (const clause of sentenceToClauses(tree, ctx)) {
             clauses.push(clause);
         }
     }
 
-    const negated = not(parseSentence(conjecture, registry));
     const sosIndices: number[] = [];
-    for (const clause of sentenceToClauses(negated, ctx)) {
+    for (const clause of sentenceToClauses(not(conjectureTree), ctx)) {
         sosIndices.push(clauses.length);
         clauses.push(clause);
     }
