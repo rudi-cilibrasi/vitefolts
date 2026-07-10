@@ -226,6 +226,7 @@ export function setupApp(
                     <option value="2">slow</option>
                     <option value="1" selected>normal</option>
                     <option value="0.5">fast</option>
+                    <option value="0">off</option>
                 </select>
             </label>
             <label class="speed-label">music
@@ -611,6 +612,16 @@ export function setupApp(
         return parseFloat(musicSel.value);
     }
 
+    // Render a formula step, animating over `duration` ms — or snapping
+    // instantly when animation is off (duration ≤ 0).
+    async function renderStep(el: HTMLElement, inner: string, duration: number): Promise<void> {
+        if (duration <= 0) {
+            renderMath(el, inner);
+            return;
+        }
+        await animateMath(el, inner, duration);
+    }
+
     async function doStep(): Promise<void> {
         if (busy || stepIndex >= steps.length) return;
         busy = true;
@@ -626,7 +637,7 @@ export function setupApp(
         const anyChange = newInners.some((t, k) => t !== oldInners[k]);
         if (anyChange) {
             const duration = BASE_DURATION_MS * durationMult();
-            await Promise.all(rowGlyphEls.map((el, k) => animateMath(el, newInners[k], duration)));
+            await Promise.all(rowGlyphEls.map((el, k) => renderStep(el, newInners[k], duration)));
         } else {
             statusEl.textContent = `${step.detail} — no change needed.`;
             await sleep(400 * durationMult());
@@ -652,7 +663,7 @@ export function setupApp(
         const anyChange = prevInners.some((t, k) => t !== curInners[k]);
         if (anyChange) {
             const duration = BASE_DURATION_MS * durationMult();
-            await Promise.all(rowGlyphEls.map((el, k) => animateMath(el, prevInners[k], duration)));
+            await Promise.all(rowGlyphEls.map((el, k) => renderStep(el, prevInners[k], duration)));
         } else {
             await sleep(300 * durationMult());
         }
@@ -754,7 +765,7 @@ export function setupApp(
             infoEl.className = 'step-info';
             row.appendChild(infoEl);
             await sleep(150 * durationMult());
-            await animateMath(glyphs, resolventInner, duration);
+            await renderStep(glyphs, resolventInner, duration);
             infoEl.textContent = info;
             infoEl.classList.add('visible');
             centerClause = step.resolvent;
