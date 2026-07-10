@@ -33,9 +33,9 @@ body {
 }
 
 #app {
-    max-width: 1080px;
+    max-width: 1800px;
     margin: 0 auto;
-    padding: 2rem 1.5rem 4rem;
+    padding: 2rem 2.5rem 4rem;
 }
 
 header {
