@@ -2,6 +2,7 @@ import { List } from 'immutable';
 import { OperationType } from './operation-type';
 import { ScopedId } from './scope';
 import { S3, S3F, SentenceTreeNode } from './sentence-tree-node';
+import { ExpansionBudget, chargeExpansion, makeExpansionBudget } from './expansion-guard';
 
 // Completion of the clausal-form pipeline: skolemization, universal
 // quantifier dropping, ∨/∧ distribution, and clause extraction. These run
@@ -85,11 +86,28 @@ export function drop_foralls(tree: SentenceTreeNode): SentenceTreeNode {
     return S3F({ operation: tree.operation, children, bound_vars: tree.bound_vars });
 }
 
-function leavesOf(op: OperationType, node: SentenceTreeNode): SentenceTreeNode[] {
+// Biconditional elimination shares subtrees (a cheap DAG), but the next
+// tree-rebuilding step materializes that DAG into its full 2ⁿ form. Walk it as
+// a tree with an early-bailing counter — O(1) memory, bounded time — so an
+// astronomically large normal form throws before any step tries to build it.
+export function assertClausalSizeWithin(tree: SentenceTreeNode, limit = 500_000): void {
+    const budget = makeExpansionBudget(limit);
+    const stack: SentenceTreeNode[] = [tree];
+    while (stack.length > 0) {
+        chargeExpansion(budget);
+        const node = stack.pop()!;
+        for (const child of node.children) {
+            stack.push(child);
+        }
+    }
+}
+
+function leavesOf(op: OperationType, node: SentenceTreeNode, budget: ExpansionBudget = makeExpansionBudget()): SentenceTreeNode[] {
+    chargeExpansion(budget);
     if (node.operation === op) {
         const out: SentenceTreeNode[] = [];
         for (const c of node.children) {
-            out.push(...leavesOf(op, c));
+            out.push(...leavesOf(op, c, budget));
         }
         return out;
     }
@@ -97,20 +115,23 @@ function leavesOf(op: OperationType, node: SentenceTreeNode): SentenceTreeNode[]
 }
 
 // Distribute ∨ over ∧ (and flatten nested ∧/∨) to reach CNF. Assumes a
-// quantifier-free NNF input.
-export function distribute_or_over_and(tree: SentenceTreeNode): SentenceTreeNode {
+// quantifier-free NNF input. Worst-case exponential, so it charges a shared
+// budget and throws ClausalFormTooLargeError rather than exhausting memory on
+// an adversarial formula.
+export function distribute_or_over_and(tree: SentenceTreeNode, budget: ExpansionBudget = makeExpansionBudget()): SentenceTreeNode {
+    chargeExpansion(budget);
     if (tree.operation === OperationType.AND) {
-        const parts = tree.children.map(distribute_or_over_and);
+        const parts = tree.children.map((c) => distribute_or_over_and(c, budget));
         const leaves: SentenceTreeNode[] = [];
         for (const p of parts) {
-            leaves.push(...leavesOf(OperationType.AND, p));
+            leaves.push(...leavesOf(OperationType.AND, p, budget));
         }
         return leaves.length === 1 ? leaves[0] : S3(OperationType.AND, List(leaves), List([]));
     }
     if (tree.operation === OperationType.OR) {
         const parts: SentenceTreeNode[] = [];
         for (const c of tree.children) {
-            parts.push(...leavesOf(OperationType.OR, distribute_or_over_and(c)));
+            parts.push(...leavesOf(OperationType.OR, distribute_or_over_and(c, budget), budget));
         }
         const andIndex = parts.findIndex((p) => p.operation === OperationType.AND);
         if (andIndex === -1) {
@@ -118,9 +139,13 @@ export function distribute_or_over_and(tree: SentenceTreeNode): SentenceTreeNode
         }
         const andPart = parts[andIndex];
         const rest = parts.filter((_, i) => i !== andIndex);
-        const conjuncts = andPart.children.map((conj) =>
-            distribute_or_over_and(S3(OperationType.OR, List([conj, ...rest]), List([]))));
-        return distribute_or_over_and(S3(OperationType.AND, conjuncts, List([])));
+        const conjuncts = andPart.children.map((conj) => {
+            // Building OR(conj, ...rest) allocates rest.length references, so
+            // charge for them — this is where ∨-over-∧ multiplies.
+            for (let i = 0; i < rest.length; i++) chargeExpansion(budget);
+            return distribute_or_over_and(S3(OperationType.OR, List([conj, ...rest]), List([])), budget);
+        });
+        return distribute_or_over_and(S3(OperationType.AND, conjuncts, List([])), budget);
     }
     return tree;
 }

@@ -126,10 +126,12 @@ The engine (`src/notation/`) is self-contained — its only runtime dependency i
 
 ```bash
 npm run build:lib
-cd dist-lib && npm publish   # requires `npm login`
+cd dist-lib && npm publish --access public   # scoped package; requires `npm login`
 ```
 
 The main repo package stays private; only `dist-lib/` is the published artifact.
+
+**Handling untrusted input:** `parseSentence`/`proveConjecture` are safe to call on attacker-controlled strings — the parser bounds recursion depth (throws `ParseError` on pathological nesting) and clausal-form conversion bounds its expansion (throws `ClausalFormTooLargeError` rather than exhausting memory on a formula whose normal form is astronomically large). Both are catchable; wrap calls in `try/catch`.
 
 ### Development
 

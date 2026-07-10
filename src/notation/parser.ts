@@ -79,11 +79,25 @@ type UForm =
     | { k: 'eq'; l: UTerm; r: UTerm }
     | { k: 'atom'; name: string; args: UTerm[] };
 
+// Bound recursion so a deeply nested formula (e.g. thousands of nested
+// parentheses or ¬) throws a catchable ParseError instead of overflowing the
+// stack. Real formulas nest only a handful deep.
+const MAX_PARSE_DEPTH = 1000;
+
 class TokenStream {
     tokens: Token[];
     pos = 0;
+    depth = 0;
     constructor(text: string) {
         this.tokens = tokenize(text);
+    }
+    enter(): void {
+        if (++this.depth > MAX_PARSE_DEPTH) {
+            throw new ParseError('Formula is nested too deeply');
+        }
+    }
+    leave(): void {
+        this.depth--;
     }
     peek(): Token | undefined {
         return this.tokens[this.pos];
@@ -179,6 +193,18 @@ function parseAtomOrParen(s: TokenStream): UForm {
 }
 
 function parseUnary(s: TokenStream): UForm {
+    // Every nesting level (¬, quantifier body, or a parenthesized subformula
+    // via parseAtomOrParen) passes through here, so this is the choke point
+    // for the recursion-depth bound.
+    s.enter();
+    try {
+        return parseUnaryInner(s);
+    } finally {
+        s.leave();
+    }
+}
+
+function parseUnaryInner(s: TokenStream): UForm {
     if (s.takeOp('¬')) {
         return { k: 'not', a: parseUnary(s) };
     }
